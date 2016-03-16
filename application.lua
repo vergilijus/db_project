@@ -3,10 +3,10 @@
 box.cfg{}
 
 local mysql = require('mysql')
-local conn = mysql.connect({host = localhost, user = 'root', password = '213566', db = 'tempdb'})
+local conn = mysql.connect({host = localhost, user = 'root', password = 'root', db = 'technopark'})
 
 local function handler(self)
-    return self:render{ json = conn:execute('select * from forum;') }
+    return self:render{ json = conn:execute('select * from Forum;') }
 end
 
 local httpd = require('http.server')
