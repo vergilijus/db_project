@@ -11,23 +11,28 @@ CREATE TABLE Forum (
   PRIMARY KEY (id)
 );
 
-CREATE TABLE Post (
-
-  id     INT AUTO_INCREMENT NOT NULL,
-  date   DATE               NOT NULL,
-  thread INT                NOT NULL, #todo: foreign key
-  PRIMARY KEY (id)
-  #   todo
-);
-
-CREATE TABLE User (
-  id INT AUTO_INCREMENT NOT NULL,
-  PRIMARY KEY (id)
-  #   todo
-);
-
 CREATE TABLE Thread (
   id INT AUTO_INCREMENT NOT NULL,
   PRIMARY KEY (id)
   #   todo
+)
+  ENGINE = INNODB;
+
+CREATE TABLE Post (
+
+id     INT AUTO_INCREMENT NOT NULL,
+date   DATE               NOT NULL,
+thread INT                NOT NULL,
+PRIMARY KEY (id),
+FOREIGN KEY (thread)
+REFERENCES Thread (id)
+#   todo
+)
+ENGINE = INNODB;
+
+CREATE TABLE User (
+id INT AUTO_INCREMENT NOT NULL,
+PRIMARY KEY (id)
+#   todo
 );
+
