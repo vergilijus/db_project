@@ -4,14 +4,15 @@ DROP TABLE IF EXISTS User;
 DROP TABLE IF EXISTS Thread;
 
 CREATE TABLE User (
-  username    VARCHAR(32)           NOT NULL,
-  about       VARCHAR(127)          NOT NULL,
-  name        VARCHAR(63)           NOT NULL,
-  email       VARCHAR(63)           NOT NULL,
-  isAnonymous BOOL DEFAULT FALSE    NOT NULL,
-  isDeleted   BOOLEAN DEFAULT FALSE NOT NULL,
-  PRIMARY KEY (email)
-  #   todo
+  id          INT UNSIGNED AUTO_INCREMENT NOT NULL,
+  username    VARCHAR(63)                 NOT NULL,
+  about       VARCHAR(127)                NOT NULL,
+  name        VARCHAR(63)                 NOT NULL,
+  email       VARCHAR(63)                 NOT NULL,
+  isAnonymous BOOL DEFAULT FALSE          NOT NULL,
+  #   isDeleted   BOOLEAN DEFAULT FALSE NOT NULL,
+  PRIMARY KEY (email),
+  UNIQUE KEY (id)
 );
 
 CREATE TABLE Forum (
