@@ -16,6 +16,7 @@ CREATE TABLE User (
   UNIQUE KEY (id)
 );
 
+INSERT INTO User VALUES ()
 CREATE TABLE Followers (
   follower INT UNSIGNED NOT NULL,
   followee INT UNSIGNED NOT NULL,

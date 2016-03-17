@@ -1,4 +1,4 @@
-#!    /usb/bin/env/tarantool
+#!      /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -79,8 +79,22 @@ end
 --------------
 -- User.
 --------------
+local function createUser(req)
+    if req.method ~= 'POST' then
+        return req:render({ json = errorRequest(3) })
+    end
+    local json_req = {}
+    if not pcall(function() json_req = req:json() end) then
+        return req:render({ json = errorRequest(2) })
+    end
 
--- todo
+    local query = conn:execute('insert into ')
+    local response = {
+        code = 0,
+        response = json_req
+    }
+    return req:render({ json = response })
+end
 
 --------------
 -- Thread.
@@ -100,5 +114,6 @@ server:route({ path = FORUM_PATH }, getForum)
 server:route({ path = FORUM_PATH .. '/create' }, createForum)
 -- Post.
 -- User.
+server:route({ path = USER_PATH .. '/create' }, createUser)
 -- Thread.
 server:start()
