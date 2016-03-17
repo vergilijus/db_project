@@ -1,6 +1,7 @@
-#!     /usb/bin/env tarantool
-
+#!      /usb/bin/env tarantool
 box.cfg {}
+
+local BASE_PATH = '/db/api'
 
 local mysql = require('mysql')
 local conn = mysql.connect({ host = localhost, user = 'root', password = 'root', db = 'technopark' })
@@ -10,7 +11,6 @@ local conn = mysql.connect({ host = localhost, user = 'root', password = 'root',
 --------------
 -- Общие.
 --------------
-
 local function status(req)
     local fc = conn:execute('select count(*) as forum from Forum')[1].forum
     local tc = conn:execute('select count(*) as thread from Thread')[1].thread
@@ -32,7 +32,6 @@ end
 --------------
 -- Forum.
 --------------
-
 local function getForum(self)
     return self:render { json = conn:execute('select * from Forum;') }
 end
@@ -40,7 +39,6 @@ end
 --------------
 -- Post.
 --------------
-
 local function getPost(self)
     return self:render { json = conn:execute('select * from Post;') }
 end
@@ -48,15 +46,19 @@ end
 --------------
 -- User.
 --------------
+
 -- todo
+
 --------------
 -- Thread.
 --------------
+
 -- todo
+
 local httpd = require('http.server')
 
-local server = httpd.new('*', 8081)
-server:route({ path = '/forum' }, getForum)
-server:route({ path = '/post' }, getPost)
-server:route({ path = '/status' }, status)
+local server = httpd.new('127.0.0.1', 8081)
+server:route({ path = BASE_PATH..'/forum' }, getForum)
+server:route({ path = BASE_PATH..'/post' }, getPost)
+server:route({ path = BASE_PATH..'/status' }, status)
 server:start()
