@@ -25,15 +25,15 @@ CREATE TABLE Forum (
 );
 
 CREATE TABLE Thread (
-  id        INT AUTO_INCREMENT NOT NULL,
-  date      DATE               NOT NULL,
-  title     VARCHAR(255)       NOT NULL,
-  forum     VARCHAR(63)        NOT NULL, # todo: foreign key
-  isClosed  BOOLEAN DEFAULT FALSE,
-  isDeleted BOOLEAN DEFAULT FALSE,
-  message   VARCHAR(255),
-  slug      VARCHAR(255),
-  user      VARCHAR(63), # todo: foreign key
+  id        INT AUTO_INCREMENT    NOT NULL,
+  date      DATE                  NOT NULL,
+  title     VARCHAR(255)          NOT NULL,
+  forum     VARCHAR(63)           NOT NULL, # todo: foreign key
+  isClosed  BOOLEAN DEFAULT FALSE NOT NULL,
+  isDeleted BOOLEAN DEFAULT FALSE NOT NULL,
+  message   VARCHAR(255)          NOT NULL,
+  slug      VARCHAR(255)          NOT NULL,
+  user      VARCHAR(63)           NOT NULL, # todo: foreign key
   PRIMARY KEY (id)
   #   todo
 )
