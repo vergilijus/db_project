@@ -1,8 +1,10 @@
+SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS Forum;
 DROP TABLE IF EXISTS Post;
 DROP TABLE IF EXISTS User;
 DROP TABLE IF EXISTS Thread;
 DROP TABLE IF EXISTS Followers;
+SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE User (
   id          INT UNSIGNED AUTO_INCREMENT NOT NULL,
@@ -16,7 +18,13 @@ CREATE TABLE User (
   UNIQUE KEY (id)
 );
 
-INSERT INTO User VALUES ()
+# INSERT INTO User (username, about, name, email, isAnonymous)
+# VALUES ('user1', 'hello im user1', 'John', 'example@mail.ru', FALSE);
+# INSERT INTO User (username, about, name, email, isAnonymous)
+# VALUES ('user2', 'hello im user1', 'John', 'example2@mail.ru', FALSE);
+# INSERT INTO User (username, about, name, email, isAnonymous)
+# VALUES ('user2', 'hello im user1', 'John', 'example3@mail.ru', FALSE);
+
 CREATE TABLE Followers (
   follower INT UNSIGNED NOT NULL,
   followee INT UNSIGNED NOT NULL,
