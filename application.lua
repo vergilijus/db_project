@@ -1,4 +1,4 @@
-#!                     /usb/bin/env/tarantool
+#!                         /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -99,33 +99,42 @@ end
 -- User.
 --------------
 local function createUser(req)
+    -- Проверка метода.
     if req.method ~= 'POST' then
         return req:render({ json = errorRequest(3) })
     end
-    --    if true then return req:render({ text = req:json()}) end
-    local user = req:json()
-    --    if not pcall(function() user = req:json() end) then
-    --        return req:render({ text = tostring(req)})
-    --    end
 
-    if user.email == nil
-            or user.username == nil
-            or user.about == nil
-            or user.name == nil then
+    -- Проверка валидности json.
+    local user
+    if not pcall(function() user = req:json() end) then
+        return req:render({ json = errorRequest(2) })
+    end
+
+    -- Проверка обязательных параметров.
+    if user.email == nil then
         return req:render({ json = errorRequest(3) })
     end
-    local query = string.format([[ INSERT INTO
-    User (username, about, name, email, isAnonymous)
-    VALUES (%q, %q, %q, %q, %s)]],
-        user.username, user.about, user.name, user.email, user.isAnonymous)
-    conn:execute(query)
-    local created_user = conn:execute(string.format('select * from User where email = %q', user.email))
 
-    local response = {
-        code = 0,
-        response = created_user[1]
-    }
-    return req:render({ json = response })
+    -- Формируем запрос.
+    local query
+    if user.isAnonymous then
+        query = string.format([[
+        INSERT INTO User (email, isAnonymous)
+        VALUES (%q, %s)
+        ]], user.email, user.isAnonymous)
+    else
+        query = string.format([[
+        INSERT INTO User (email, username, about, name)
+        VALUES (%q, %q, %q, %q)
+        ]], user.email, user.username, user.about, user.name)
+    end
+
+    conn:execute(query)
+
+    -- Получаем созданного пользователя.
+    query = string.format('SELECT * FROM User WHERE EMAIL = %q', user.email)
+    local created_user = conn:execute(query)[1]
+    return req:render({ json = newResponse(0, created_user) })
 end
 
 local function userDetails(req)
