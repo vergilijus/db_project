@@ -9,7 +9,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE User (
   id          INT UNSIGNED AUTO_INCREMENT NOT NULL,
   username    VARCHAR(63)                 NOT NULL,
-  about       VARCHAR(127)                NOT NULL,
+  about       VARCHAR(5000)               NOT NULL,
   name        VARCHAR(63)                 NOT NULL,
   email       VARCHAR(63)                 NOT NULL,
   isAnonymous BOOL DEFAULT FALSE          NOT NULL,
@@ -36,9 +36,9 @@ CREATE TABLE Followers (
 
 CREATE TABLE Forum (
   id         INT AUTO_INCREMENT NOT NULL,
-  name       VARCHAR(100)       NOT NULL,
-  short_name VARCHAR(50)        NOT NULL, # todo: походу это primary key
-  user       VARCHAR(50)        NOT NULL,
+  name       VARCHAR(127)       NOT NULL,
+  short_name VARCHAR(63)        NOT NULL, # todo: походу это primary key
+  user       VARCHAR(63)        NOT NULL,
   PRIMARY KEY (id),
   FOREIGN KEY (user)
   REFERENCES User (email)
@@ -51,7 +51,7 @@ CREATE TABLE Thread (
   forum     VARCHAR(63)           NOT NULL, # todo: foreign key
   isClosed  BOOLEAN DEFAULT FALSE NOT NULL,
   isDeleted BOOLEAN DEFAULT FALSE NOT NULL,
-  message   VARCHAR(255)          NOT NULL,
+  message   VARCHAR(5000)         NOT NULL,
   slug      VARCHAR(255)          NOT NULL,
   user      VARCHAR(63)           NOT NULL, # todo: foreign key
   PRIMARY KEY (id)

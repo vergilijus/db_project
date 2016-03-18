@@ -1,4 +1,4 @@
-#!        /usb/bin/env/tarantool
+#!            /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -38,10 +38,10 @@ local function status(req)
         return req:render({ json = errorRequest(3) })
     end
 
-    local fc = conn:execute('select count(*) as forum from Forum')[1].forum
-    local tc = conn:execute('select count(*) as thread from Thread')[1].thread
-    local pc = conn:execute('select count(*) as post from Post')[1].post
-    local uc = conn:execute('select count(*) as user from User')[1].user
+    local fc = conn:execute('SELECT COUNT(*) AS forum FROM Forum')[1].forum
+    local tc = conn:execute('SELECT COUNT(*) AS thread FROM Thread')[1].thread
+    local pc = conn:execute('SELECT COUNT(*) AS post FROM Post')[1].post
+    local uc = conn:execute('SELECT COUNT(*) AS user FROM User')[1].user
 
     local response = newResponse(0,
         {
@@ -58,11 +58,11 @@ local function clear(req)
         return req:render({ json = errorRequest(3) })
     end
     conn:execute('SET FOREIGN_KEY_CHECKS = 0;')
-    conn:execute('truncate table User')
-    conn:execute('truncate table Forum')
-    conn:execute('truncate table Post')
-    conn:execute('truncate table Thread')
-    conn:execute('truncate table Followers')
+    conn:execute('TRUNCATE TABLE User;')
+    conn:execute('TRUNCATE TABLE Forum;')
+    conn:execute('TRUNCATE TABLE Post;')
+    conn:execute('TRUNCATE TABLE Thread;')
+    conn:execute('TRUNCATE TABLE Followers;')
     conn:execute('SET FOREIGN_KEY_CHECKS = 1;')
     local response = newResponse(0, 'OK')
     return req:render({ json = response })
@@ -98,12 +98,23 @@ local function createUser(req)
     if req.method ~= 'POST' then
         return req:render({ json = errorRequest(3) })
     end
-    local json_req = {}
-    if not pcall(function() json_req = req:json() end) then
+
+    local user = {}
+    if not pcall(function() user = req:json() end) then
         return req:render({ json = errorRequest(2) })
     end
-    conn:execute('insert into User (username, about, name, email) values (\'' .. json_req.username .. '\',\'' .. json_req.about .. '\',\'' .. json_req.name .. '\',\'' .. json_req.email .. '\')')
-    local created_user = conn:execute('select * from User where email = \'' .. json_req.email .. '\'')
+
+    if user.email == nil
+            or user.username == nil
+            or user.about == nil
+            or user.name == nil then
+        return req:render({ json = errorRequest(3) })
+    end
+    local query = string.format('INSERT INTO User (username, about, name, email, isAnonymous) VALUES (%q, %q, %q, %q, %s)',
+        user.username, user.about, user.name, user.email, user.isAnonymous)
+    conn:execute(query)
+    local created_user = conn:execute(string.format('select * from User where email = %q', user.email ))
+
     local response = {
         code = 0,
         response = created_user[1]
