@@ -1,4 +1,4 @@
-#!            /usb/bin/env/tarantool
+#!                     /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -72,7 +72,9 @@ end
 -- Forum.
 --------------
 local function getForum(self)
-    return self:render { json = conn:execute('select * from Forum;') }
+    return self:render {
+        json = conn:execute('select * from Forum;')
+    }
 end
 
 local function createForum(req)
@@ -88,7 +90,9 @@ end
 -- Post.
 --------------
 local function getPost(self)
-    return self:render { json = conn:execute('select * from Post;') }
+    return self:render {
+        json = conn:execute('select * from Post;')
+    }
 end
 
 --------------
@@ -98,11 +102,11 @@ local function createUser(req)
     if req.method ~= 'POST' then
         return req:render({ json = errorRequest(3) })
     end
-
-    local user = {}
-    if not pcall(function() user = req:json() end) then
-        return req:render({ json = errorRequest(2) })
-    end
+    --    if true then return req:render({ text = req:json()}) end
+    local user = req:json()
+    --    if not pcall(function() user = req:json() end) then
+    --        return req:render({ text = tostring(req)})
+    --    end
 
     if user.email == nil
             or user.username == nil
@@ -110,15 +114,41 @@ local function createUser(req)
             or user.name == nil then
         return req:render({ json = errorRequest(3) })
     end
-    local query = string.format('INSERT INTO User (username, about, name, email, isAnonymous) VALUES (%q, %q, %q, %q, %s)',
+    local query = string.format([[ INSERT INTO
+    User (username, about, name, email, isAnonymous)
+    VALUES (%q, %q, %q, %q, %s)]],
         user.username, user.about, user.name, user.email, user.isAnonymous)
     conn:execute(query)
-    local created_user = conn:execute(string.format('select * from User where email = %q', user.email ))
+    local created_user = conn:execute(string.format('select * from User where email = %q', user.email))
 
     local response = {
         code = 0,
         response = created_user[1]
     }
+    return req:render({ json = response })
+end
+
+local function userDetails(req)
+    -- check method
+    if req.method ~= 'GET' then
+        return req:render({ json = errorRequest(3) })
+    end
+
+
+    local email = req:param('user')
+    if email == nil then
+        return req:render({ json = errorRequest(2) })
+    end
+
+    local details = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
+    if details == nil then
+        return req:render({ json = errorRequest(1) })
+    end
+
+    details.followers = {}
+    details.following = {}
+    details.subscriptions = {}
+    local response = newResponse(0, details)
     return req:render({ json = response })
 end
 
@@ -142,5 +172,6 @@ server:route({ path = FORUM_PATH .. '/create' }, createForum)
 -- Post.
 -- User.
 server:route({ path = USER_PATH .. '/create' }, createUser)
+server:route({ path = USER_PATH .. '/details' }, userDetails)
 -- Thread.
 server:start()
