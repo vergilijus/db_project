@@ -1,4 +1,4 @@
-#!      /usb/bin/env/tarantool
+#!        /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -53,6 +53,21 @@ local function status(req)
     return req:render({ json = response })
 end
 
+local function clear(req)
+    if req.method ~= 'GET' then
+        return req:render({ json = errorRequest(3) })
+    end
+    conn:execute('SET FOREIGN_KEY_CHECKS = 0;')
+    conn:execute('truncate table User')
+    conn:execute('truncate table Forum')
+    conn:execute('truncate table Post')
+    conn:execute('truncate table Thread')
+    conn:execute('truncate table Followers')
+    conn:execute('SET FOREIGN_KEY_CHECKS = 1;')
+    local response = newResponse(0, 'OK')
+    return req:render({ json = response })
+end
+
 --------------
 -- Forum.
 --------------
@@ -87,11 +102,11 @@ local function createUser(req)
     if not pcall(function() json_req = req:json() end) then
         return req:render({ json = errorRequest(2) })
     end
-
-    local query = conn:execute('insert into ')
+    conn:execute('insert into User (username, about, name, email) values (\'' .. json_req.username .. '\',\'' .. json_req.about .. '\',\'' .. json_req.name .. '\',\'' .. json_req.email .. '\')')
+    local created_user = conn:execute('select * from User where email = \'' .. json_req.email .. '\'')
     local response = {
         code = 0,
-        response = json_req
+        response = created_user[1]
     }
     return req:render({ json = response })
 end
@@ -108,6 +123,7 @@ local server = httpd.new('127.0.0.1', 8081)
 
 -- Общие.
 server:route({ path = BASE_PATH .. '/status' }, status)
+server:route({ path = BASE_PATH .. '/clear' }, clear)
 
 -- Forum.
 server:route({ path = FORUM_PATH }, getForum)
