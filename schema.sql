@@ -8,11 +8,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE User (
   id          INT UNSIGNED AUTO_INCREMENT NOT NULL,
-  username    VARCHAR(63)                 NOT NULL,
-  about       VARCHAR(5000)               NOT NULL,
-  name        VARCHAR(63)                 NOT NULL,
   email       VARCHAR(63)                 NOT NULL,
   isAnonymous BOOL DEFAULT FALSE          NOT NULL,
+  username    VARCHAR(63)   DEFAULT NULL,
+  about       VARCHAR(5000) DEFAULT NULL,
+  name        VARCHAR(63)   DEFAULT NULL,
   #   isDeleted   BOOLEAN DEFAULT FALSE NOT NULL,
   PRIMARY KEY (email),
   UNIQUE KEY (id)
@@ -22,8 +22,8 @@ CREATE TABLE User (
 # VALUES ('user1', 'hello im user1', 'John', 'example@mail.ru', FALSE);
 # INSERT INTO User (username, about, name, email, isAnonymous)
 # VALUES ('user2', 'hello im user1', 'John', 'example2@mail.ru', FALSE);
-# INSERT INTO User (username, about, name, email, isAnonymous)
-# VALUES ('user2', 'hello im user1', 'John', 'example3@mail.ru', FALSE);
+INSERT INTO User (username, about, name, email, isAnonymous)
+VALUES ('user2', 'hello im user1', NULL, 'example3@mail.ru', FALSE);
 
 CREATE TABLE Followers (
   follower INT UNSIGNED NOT NULL,
@@ -37,9 +37,10 @@ CREATE TABLE Followers (
 CREATE TABLE Forum (
   id         INT AUTO_INCREMENT NOT NULL,
   name       VARCHAR(127)       NOT NULL,
-  short_name VARCHAR(63)        NOT NULL, # todo: походу это primary key
+  short_name VARCHAR(127)       NOT NULL, # todo: походу это primary key
   user       VARCHAR(63)        NOT NULL,
-  PRIMARY KEY (id),
+  PRIMARY KEY (short_name),
+  UNIQUE KEY (id),
   FOREIGN KEY (user)
   REFERENCES User (email)
 );
@@ -48,13 +49,15 @@ CREATE TABLE Thread (
   id        INT AUTO_INCREMENT    NOT NULL,
   date      DATE                  NOT NULL,
   title     VARCHAR(255)          NOT NULL,
-  forum     VARCHAR(63)           NOT NULL, # todo: foreign key
+  forum     VARCHAR(127)           NOT NULL, # todo: foreign key
   isClosed  BOOLEAN DEFAULT FALSE NOT NULL,
   isDeleted BOOLEAN DEFAULT FALSE NOT NULL,
   message   VARCHAR(5000)         NOT NULL,
   slug      VARCHAR(255)          NOT NULL,
   user      VARCHAR(63)           NOT NULL, # todo: foreign key
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  FOREIGN KEY (forum)
+  REFERENCES Forum (short_name)
   #   todo
 )
   ENGINE = INNODB;
@@ -63,11 +66,17 @@ CREATE TABLE Post (
   id         INT AUTO_INCREMENT NOT NULL,
   date       DATE               NOT NULL,
   thread     INT                NOT NULL,
+  forum      VARCHAR(127)       NOT NULL,
+  user       VARCHAR(63)        NOT NULL,
   parent     INT, # todo foreign key,
   isApproved BOOLEAN,
   PRIMARY KEY (id),
   FOREIGN KEY (thread)
-  REFERENCES Thread (id)
+  REFERENCES Thread (id),
+  FOREIGN KEY (user)
+  REFERENCES User (email),
+  FOREIGN KEY (forum)
+  REFERENCES Forum (short_name)
   #   todo
 )
   ENGINE = INNODB;
