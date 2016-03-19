@@ -1,4 +1,4 @@
-#!                         /usb/bin/env/tarantool
+#! /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -8,6 +8,7 @@ local USER_PATH = BASE_PATH .. '/user'
 local THREAD_PATH = BASE_PATH .. '/thread'
 
 local mysql = require('mysql')
+local json = require('json')
 local conn = mysql.connect({ host = localhost, user = 'root', password = 'root', db = 'technopark' })
 
 local function newResponse(code, response)
@@ -157,6 +158,10 @@ local function userDetails(req)
     details.followers = {}
     details.following = {}
     details.subscriptions = {}
+    for key, val in pairs(details) do
+        if val == '' then details[key] = json.null end
+    end
+
     local response = newResponse(0, details)
     return req:render({ json = response })
 end
