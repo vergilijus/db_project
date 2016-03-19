@@ -1,4 +1,4 @@
-#!  /usb/bin/env/tarantool
+#!           /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -99,6 +99,20 @@ end
 --------------
 -- User.
 --------------
+local function getUser(email)
+    local user = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
+    if not user then return nil end
+
+    user.followers = {}
+    user.following = {}
+    user.subscriptions = {}
+    for key, val in pairs(user) do
+        if val == '' then user[key] = json.null end
+    end
+
+    return user
+end
+
 local function createUser(req)
     -- Проверка метода.
     if req.method ~= 'POST' then
@@ -130,9 +144,10 @@ local function createUser(req)
         ]], user.email, user.username, user.about, user.name)
     end
 
+    -- ВЫполняем запрос, проверяем результат.
     local result, status = conn:execute(query)
     if not result then
-        return req:render({ json = errorResponse(5)})
+        return req:render({ json = errorResponse(5) })
     end
 
     -- Получаем созданного пользователя.
@@ -153,22 +168,61 @@ local function userDetails(req)
         return req:render({ json = errorResponse(2) })
     end
 
-    local details = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
-    if details == nil then
+    --    local details = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
+    --    if details == nil then
+    --        return req:render({ json = errorResponse(1) })
+    --    end
+    --
+    --    details.followers = {}
+    --    details.following = {}
+    --    details.subscriptions = {}
+    --    for key, val in pairs(details) do
+    --        if val == '' then details[key] = json.null end
+    --    end
+    local details = getUser(email)
+    if not details then
         return req:render({ json = errorResponse(1) })
-    end
-
-    details.followers = {}
-    details.following = {}
-    details.subscriptions = {}
-    for key, val in pairs(details) do
-        if val == '' then details[key] = json.null end
     end
 
     local response = newResponse(0, details)
     return req:render({ json = response })
 end
 
+local function updateProfile(req)
+    if req.method ~= 'POST' then
+        return req:render({ json = errorResponse(3) })
+    end
+
+    -- Проверка валидности json.
+    local user
+    if not pcall(function() user = req:json() end) then
+        return req:render({ json = errorResponse(2) })
+    end
+
+    -- Проверка обязательных параметров.
+    if not user
+            or not user.about
+            or not user.name
+            or not user.user then
+        return req:render({ json = errorResponse(3) })
+    end
+
+    -- Формируем запрос.
+    local query
+    query = string.format([[
+    UPDATE User SET name = %q, about = %q WHERE email = %q;]],
+        user.name, user.about, user.user)
+
+    -- Выполняем запрос.
+    local result, status = conn:execute(query)
+    if not result or status == 0 then
+        return req:render({ json = errorResponse(1) })
+    end
+
+    -- Получаем обновленного пользователя.
+    local created_user = getUser(user.user)
+    return req:render({ json = newResponse(0, created_user) })
+end
 
 --------------
 -- Thread.
