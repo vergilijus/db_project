@@ -1,4 +1,4 @@
-#! /usb/bin/env/tarantool
+#!  /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -130,7 +130,10 @@ local function createUser(req)
         ]], user.email, user.username, user.about, user.name)
     end
 
-    conn:execute(query)
+    local result, status = conn:execute(query)
+    if not result then
+        return req:render({ json = errorRequest(5)})
+    end
 
     -- Получаем созданного пользователя.
     query = string.format('SELECT * FROM User WHERE EMAIL = %q', user.email)
