@@ -63,7 +63,7 @@ CREATE TABLE Thread (
 
 CREATE TABLE Post (
   id         INT AUTO_INCREMENT NOT NULL,
-  date       DATE               NOT NULL,
+  date       DATETIME           NOT NULL,
   thread     INT                NOT NULL,
   forum      VARCHAR(127)       NOT NULL,
   user       VARCHAR(63)        NOT NULL,
