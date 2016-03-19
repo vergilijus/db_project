@@ -46,15 +46,19 @@ CREATE TABLE Forum (
 );
 
 CREATE TABLE Thread (
-  id        INT AUTO_INCREMENT    NOT NULL,
-  date      DATE                  NOT NULL,
-  title     VARCHAR(255)          NOT NULL,
-  forum     VARCHAR(127)          NOT NULL,
-  isClosed  BOOLEAN DEFAULT FALSE NOT NULL,
-  isDeleted BOOLEAN DEFAULT FALSE NOT NULL,
-  message   VARCHAR(5000)         NOT NULL,
-  slug      VARCHAR(255)          NOT NULL,
-  user      VARCHAR(63)           NOT NULL,
+  id        INT AUTO_INCREMENT     NOT NULL,
+  date      DATE                   NOT NULL,
+  title     VARCHAR(255)           NOT NULL,
+  forum     VARCHAR(127)           NOT NULL,
+  isClosed  BOOLEAN DEFAULT FALSE  NOT NULL,
+  isDeleted BOOLEAN DEFAULT FALSE  NOT NULL,
+  message   VARCHAR(5000)          NOT NULL,
+  slug      VARCHAR(255)           NOT NULL,
+  user      VARCHAR(63)            NOT NULL,
+  likes     INT UNSIGNED DEFAULT 0 NOT NULL,
+  dislikes  INT UNSIGNED DEFAULT 0 NOT NULL,
+  points    BIGINT DEFAULT 0       NOT NULL,
+  posts     INT UNSIGNED DEFAULT 0 NOT NULL,
   PRIMARY KEY (id),
   FOREIGN KEY (forum)
   REFERENCES Forum (short_name),
