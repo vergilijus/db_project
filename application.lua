@@ -1,4 +1,4 @@
-#!                 /usb/bin/env/tarantool
+#!                    /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -30,10 +30,26 @@ local function errorResponse(code)
     return newResponse(code, RESPONSES[code])
 end
 
+-------------------
+-- Вспомогательные.
+-------------------
+local function getUser(email)
+    local user = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
+    if not user then return nil end
 
---------------
+    user.followers = {}
+    user.following = {}
+    user.subscriptions = {}
+    for key, val in pairs(user) do
+        if val == '' then user[key] = json.null end
+    end
+
+    return user
+end
+
+-----------------
 -- Общие.
---------------
+-----------------
 local function status(req)
     if req.method ~= 'GET' then
         return req:render({ json = errorResponse(3) })
@@ -78,6 +94,7 @@ local function getForum(self)
     }
 end
 
+
 local function createForum(req)
     if req.method ~= 'POST' then
         return req:render({ json = errorResponse(3) })
@@ -118,6 +135,32 @@ local function createForum(req)
     return req:render({ json = newResponse(0, created_forum) })
 end
 
+local function forumDetails(req)
+    if req.method ~= 'GET' then
+        return req:render({ json = errorResponse(3) })
+    end
+
+    -- Проверяем параметры.
+    local short_name = req:param('forum')
+    if not short_name then
+        return req:render({ json = errorResponse(2) })
+    end
+
+    -- Формируем запрос.
+    local query = string.format([[
+    SELECT * FROM Forum WHERE short_name = %q]], short_name)
+
+    local forum = conn:execute(query)[1]
+    if not forum then
+        return req:render({ json = errorResponse(1) })
+    end
+
+    if req:param('related') == 'user' then
+        forum.user = getUser(forum.user)
+    end
+    return req:render({ json = newResponse(0, forum) })
+end
+
 --------------
 -- Post.
 --------------
@@ -130,19 +173,7 @@ end
 --------------
 -- User.
 --------------
-local function getUser(email)
-    local user = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
-    if not user then return nil end
 
-    user.followers = {}
-    user.following = {}
-    user.subscriptions = {}
-    for key, val in pairs(user) do
-        if val == '' then user[key] = json.null end
-    end
-
-    return user
-end
 
 local function createUser(req)
     -- Проверка метода.
@@ -187,15 +218,15 @@ local function createUser(req)
     return req:render({ json = newResponse(0, created_user) })
 end
 
+
 local function userDetails(req)
     -- check method
     if req.method ~= 'GET' then
         return req:render({ json = errorResponse(3) })
     end
 
-
     local email = req:param('user')
-    if email == nil then
+    if not email then
         return req:render({ json = errorResponse(2) })
     end
 
@@ -207,6 +238,7 @@ local function userDetails(req)
     local response = newResponse(0, details)
     return req:render({ json = response })
 end
+
 
 local function updateProfile(req)
     if req.method ~= 'POST' then
@@ -261,6 +293,7 @@ server:route({ path = BASE_PATH .. '/clear' }, clear)
 -- Forum.
 server:route({ path = FORUM_PATH }, getForum)
 server:route({ path = FORUM_PATH .. '/create' }, createForum)
+server:route({ path = FORUM_PATH .. '/details' }, forumDetails)
 -- Post.
 -- User.
 server:route({ path = USER_PATH .. '/create' }, createUser)
