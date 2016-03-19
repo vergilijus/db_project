@@ -18,13 +18,6 @@ CREATE TABLE User (
   UNIQUE KEY (id)
 );
 
-# INSERT INTO User (username, about, name, email, isAnonymous)
-# VALUES ('user1', 'hello im user1', 'John', 'example@mail.ru', FALSE);
-# INSERT INTO User (username, about, name, email, isAnonymous)
-# VALUES ('user2', 'hello im user1', 'John', 'example2@mail.ru', FALSE);
-INSERT INTO User (username, about, name, email, isAnonymous)
-VALUES ('user2', 'hello im user1', NULL, 'example3@mail.ru', FALSE);
-
 CREATE TABLE Followers (
   follower INT UNSIGNED NOT NULL,
   followee INT UNSIGNED NOT NULL,
@@ -47,7 +40,7 @@ CREATE TABLE Forum (
 
 CREATE TABLE Thread (
   id        INT AUTO_INCREMENT     NOT NULL,
-  date      DATE                   NOT NULL,
+  date      DATETIME               NOT NULL,
   title     VARCHAR(255)           NOT NULL,
   forum     VARCHAR(127)           NOT NULL,
   isClosed  BOOLEAN DEFAULT FALSE  NOT NULL,
