@@ -26,7 +26,7 @@ local RESPONSES = {
     "такой юзер уже существует"
 }
 
-local function errorRequest(code)
+local function errorResponse(code)
     return newResponse(code, RESPONSES[code])
 end
 
@@ -36,7 +36,7 @@ end
 --------------
 local function status(req)
     if req.method ~= 'GET' then
-        return req:render({ json = errorRequest(3) })
+        return req:render({ json = errorResponse(3) })
     end
 
     local fc = conn:execute('SELECT COUNT(*) AS forum FROM Forum')[1].forum
@@ -56,7 +56,7 @@ end
 
 local function clear(req)
     if req.method ~= 'GET' then
-        return req:render({ json = errorRequest(3) })
+        return req:render({ json = errorResponse(3) })
     end
     conn:execute('SET FOREIGN_KEY_CHECKS = 0;')
     conn:execute('TRUNCATE TABLE User;')
@@ -102,18 +102,18 @@ end
 local function createUser(req)
     -- Проверка метода.
     if req.method ~= 'POST' then
-        return req:render({ json = errorRequest(3) })
+        return req:render({ json = errorResponse(3) })
     end
 
     -- Проверка валидности json.
     local user
     if not pcall(function() user = req:json() end) then
-        return req:render({ json = errorRequest(2) })
+        return req:render({ json = errorResponse(2) })
     end
 
     -- Проверка обязательных параметров.
     if user.email == nil then
-        return req:render({ json = errorRequest(3) })
+        return req:render({ json = errorResponse(3) })
     end
 
     -- Формируем запрос.
@@ -132,7 +132,7 @@ local function createUser(req)
 
     local result, status = conn:execute(query)
     if not result then
-        return req:render({ json = errorRequest(5)})
+        return req:render({ json = errorResponse(5)})
     end
 
     -- Получаем созданного пользователя.
@@ -144,18 +144,18 @@ end
 local function userDetails(req)
     -- check method
     if req.method ~= 'GET' then
-        return req:render({ json = errorRequest(3) })
+        return req:render({ json = errorResponse(3) })
     end
 
 
     local email = req:param('user')
     if email == nil then
-        return req:render({ json = errorRequest(2) })
+        return req:render({ json = errorResponse(2) })
     end
 
     local details = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
     if details == nil then
-        return req:render({ json = errorRequest(1) })
+        return req:render({ json = errorResponse(1) })
     end
 
     details.followers = {}
@@ -168,6 +168,7 @@ local function userDetails(req)
     local response = newResponse(0, details)
     return req:render({ json = response })
 end
+
 
 --------------
 -- Thread.
@@ -190,5 +191,6 @@ server:route({ path = FORUM_PATH .. '/create' }, createForum)
 -- User.
 server:route({ path = USER_PATH .. '/create' }, createUser)
 server:route({ path = USER_PATH .. '/details' }, userDetails)
+server:route({ path = USER_PATH .. '/updateProfile' }, updateProfile)
 -- Thread.
 server:start()
