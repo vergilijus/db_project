@@ -37,7 +37,7 @@ CREATE TABLE Followers (
 CREATE TABLE Forum (
   id         INT AUTO_INCREMENT NOT NULL,
   name       VARCHAR(127)       NOT NULL,
-  short_name VARCHAR(127)       NOT NULL, # todo: походу это primary key
+  short_name VARCHAR(127)       NOT NULL,
   user       VARCHAR(63)        NOT NULL,
   PRIMARY KEY (short_name),
   UNIQUE KEY (id),
@@ -49,15 +49,17 @@ CREATE TABLE Thread (
   id        INT AUTO_INCREMENT    NOT NULL,
   date      DATE                  NOT NULL,
   title     VARCHAR(255)          NOT NULL,
-  forum     VARCHAR(127)           NOT NULL, # todo: foreign key
+  forum     VARCHAR(127)          NOT NULL,
   isClosed  BOOLEAN DEFAULT FALSE NOT NULL,
   isDeleted BOOLEAN DEFAULT FALSE NOT NULL,
   message   VARCHAR(5000)         NOT NULL,
   slug      VARCHAR(255)          NOT NULL,
-  user      VARCHAR(63)           NOT NULL, # todo: foreign key
+  user      VARCHAR(63)           NOT NULL,
   PRIMARY KEY (id),
   FOREIGN KEY (forum)
-  REFERENCES Forum (short_name)
+  REFERENCES Forum (short_name),
+  FOREIGN KEY (user)
+  REFERENCES User (email)
   #   todo
 )
   ENGINE = INNODB;
