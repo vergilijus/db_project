@@ -78,6 +78,7 @@ local function getForum(self)
     }
 end
 
+
 local function createForum(req)
     local query = conn:execute('todo')[1].forum
     local response = {
@@ -167,18 +168,7 @@ local function userDetails(req)
     if email == nil then
         return req:render({ json = errorResponse(2) })
     end
-
-    --    local details = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
-    --    if details == nil then
-    --        return req:render({ json = errorResponse(1) })
-    --    end
-    --
-    --    details.followers = {}
-    --    details.following = {}
-    --    details.subscriptions = {}
-    --    for key, val in pairs(details) do
-    --        if val == '' then details[key] = json.null end
-    --    end
+    
     local details = getUser(email)
     if not details then
         return req:render({ json = errorResponse(1) })
