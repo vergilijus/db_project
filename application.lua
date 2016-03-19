@@ -1,4 +1,4 @@
-#!                    /usb/bin/env/tarantool
+#!                        /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -70,6 +70,7 @@ local function status(req)
     return req:render({ json = response })
 end
 
+
 local function clear(req)
     if req.method ~= 'GET' then
         return req:render({ json = errorResponse(3) })
@@ -135,6 +136,7 @@ local function createForum(req)
     return req:render({ json = newResponse(0, created_forum) })
 end
 
+
 local function forumDetails(req)
     if req.method ~= 'GET' then
         return req:render({ json = errorResponse(3) })
@@ -173,8 +175,6 @@ end
 --------------
 -- User.
 --------------
-
-
 local function createUser(req)
     -- Проверка метода.
     if req.method ~= 'POST' then
@@ -224,17 +224,14 @@ local function userDetails(req)
     if req.method ~= 'GET' then
         return req:render({ json = errorResponse(3) })
     end
-
     local email = req:param('user')
     if not email then
         return req:render({ json = errorResponse(2) })
     end
-
     local details = getUser(email)
     if not details then
         return req:render({ json = errorResponse(1) })
     end
-
     local response = newResponse(0, details)
     return req:render({ json = response })
 end
@@ -279,6 +276,44 @@ end
 --------------
 -- Thread.
 --------------
+local function createThread(req)
+    if req.method ~= 'POST' then
+        return req:render({ json = errorResponse(3) })
+    end
+    -- Проверка валидности json.
+    local thread
+    if not pcall(function() thread = req:json() end) then
+        return req:render({ json = errorResponse(2) })
+    end
+    -- Проверка обязательных параметров.
+    if not thread
+            or not thread.forum
+            or not thread.title
+            or not thread.isClosed
+            or not thread.user
+            or not thread.date
+            or not thread.message
+            or not thread.slug then
+        return req:render({ json = errorResponse(3) })
+    end
+
+    -- Формируем запрос.
+    local query = string.format([[
+        INSERT INTO Thread (forum, title, user, date, message, slug, isClosed)
+        VALUES (%q, %q, %q, %q, %q, %q, %s) ]],
+        thread.forum, thread.title, thread.user, thread.date, thread.message, thread.slug, thread.isClosed)
+
+    local result, status1 = conn:execute(query)
+
+    -- Получаем созданный тред.
+    query = string.format([[
+        SELECT * FROM Thread WHERE slug = %q]], thread.slug)
+    local created_thread, status2 = conn:execute(query)
+    if not created_thread or status2 == 0 then
+        return req:render({ json = newResponse(4, status1) })
+    end
+    return req:render({ json = newResponse(0, created_thread[1]) })
+end
 
 -- todo
 
@@ -300,4 +335,5 @@ server:route({ path = USER_PATH .. '/create' }, createUser)
 server:route({ path = USER_PATH .. '/details' }, userDetails)
 server:route({ path = USER_PATH .. '/updateProfile' }, updateProfile)
 -- Thread.
+server:route({ path = THREAD_PATH .. '/create' }, createThread)
 server:start()
