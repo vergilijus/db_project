@@ -1,4 +1,4 @@
-#!           /usb/bin/env/tarantool
+#!                 /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -78,14 +78,44 @@ local function getForum(self)
     }
 end
 
-
 local function createForum(req)
-    local query = conn:execute('todo')[1].forum
-    local response = {
-        code = 0,
-        response = {}
-    }
-    return req:render({ json = response })
+    if req.method ~= 'POST' then
+        return req:render({ json = errorResponse(3) })
+    end
+
+    -- Проверка валидности json.
+    local forum
+    if not pcall(function() forum = req:json() end) then
+        return req:render({ json = errorResponse(2) })
+    end
+
+    -- Проверяем параметры.
+    if not forum
+            or not forum.name
+            or not forum.short_name
+            or not forum.user then
+        return req:render({ json = errorResponse(3) })
+    end
+
+    -- Формируем запрос.
+    local query = string.format([[
+        INSERT INTO Forum (name, short_name, user)
+        VALUES (%q, %q, %q)]], forum.name, forum.short_name, forum.user)
+    local result, status = conn:execute(query)
+
+    -- Получаем созданный форум.
+    query = string.format([[
+        SELECT id, name, short_name, user
+        FROM Forum WHERE short_name = %q]], forum.short_name)
+    local created_forum = conn:execute(query)[1]
+
+    if not created_forum
+            or created_forum.name ~= forum.name
+            or created_forum.user ~= forum.user then
+        return req:render({ json = newResponse(4, status) })
+    end
+
+    return req:render({ json = newResponse(0, created_forum) })
 end
 
 --------------
@@ -168,7 +198,7 @@ local function userDetails(req)
     if email == nil then
         return req:render({ json = errorResponse(2) })
     end
-    
+
     local details = getUser(email)
     if not details then
         return req:render({ json = errorResponse(1) })
