@@ -1,4 +1,4 @@
-#!                                  /usb/bin/env/tarantool
+#!                                    /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -47,9 +47,9 @@ local function getUser(email)
     return user
 end
 
-local function unescape (s)
+local function unescape(s)
     s = string.gsub(s, "+", " ")
-    s = string.gsub(s, "%%(%x%x)", function (h)
+    s = string.gsub(s, "%%(%x%x)", function(h)
         return string.char(tonumber(h, 16))
     end)
     return s
@@ -347,33 +347,33 @@ local function threadDetails(req)
         return req:render({ json = errorResponse(3) })
     end
 
-    local id = req:param('thread')
-    if not id then
+--    local id = req:param('thread')
+    local params = decode(req.query)
+    if not params.thread then
         return req:render({ json = errorResponse(2) })
     end
 
     local query = string.format([[
-        SELECT * FROM Thread WHERE id = %d]], id)
+        SELECT * FROM Thread WHERE id = %d]], params.thread)
     local thread, status = conn:execute(query)
     thread = thread[1]
     if not thread or status == 0 then
         return req:render({ json = errorResponse(1) })
     end
 
-    local related = req:param('related')
+    local related = params.related
     if not related then
-        --        goto skip
+        return req:render({ json = newResponse(0, thread) })
     end
     for _, v in pairs(related) do
         if v == 'user' then
             thread.user = getUser(thread.user)
         end
         if v == 'forum' then
-            local query = string.format('SELECT * FROM Forum WHERE id = %q', thread.forum)
-            thread.forum = conn:execute(query)
+            local query = string.format('SELECT * FROM Forum WHERE short_name = %q', thread.forum)
+            thread.forum = conn:execute(query)[1]
         end
     end
-    --    ::skip::
     return req:render({ json = newResponse(0, thread) })
 end
 
