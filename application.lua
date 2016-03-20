@@ -1,4 +1,4 @@
-#!                                      /usb/bin/env/tarantool
+#!                                                 /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -33,6 +33,8 @@ end
 -------------------
 -- Вспомогательные.
 -------------------
+local INSERT = 'INSERT INTO %s (%s) VALUES (%s)'
+
 local function getUser(email)
     local user = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
     if not user then return nil end
@@ -82,6 +84,41 @@ local function add_related(s, obj)
         obj.forum = conn:execute(query)[1]
     end
     return obj
+end
+
+local function commaConcat(obj)
+    local params = ''
+    for _, v in pairs(obj) do
+        params = params .. v .. ','
+    end
+    return string.sub(params, 1, -2)
+end
+
+local function fieldsToString(req, opt)
+    local params = ''
+    for _, v in pairs(req) do
+        params = params .. v .. ','
+    end
+    for _, v in pairs(opt) do
+        params = params .. v .. ','
+    end
+    return string.sub(params, 1, -2)
+end
+
+local function valuesToString(req, opt, obj)
+    local s = '%q'
+    for _, v in pairs(req) do
+        s = string.format(s, obj[v]) .. ',%q'
+    end
+
+    for _, v in pairs(opt) do
+        local cur_value = 'DEFAULT'
+        if obj[v] then
+            cur_value = obj[v]
+        end
+        s = string.format(s, cur_value) .. ',%q'
+    end
+    return string.sub(s, 1, -4)
 end
 
 -----------------
@@ -140,7 +177,8 @@ local function createForum(req)
 
     -- Проверка валидности json.
     local forum
-    if not pcall(function() forum = req:json() end) then
+    if not pcall(function() forum = req:json()
+    end) then
         return req:render({ json = errorResponse(2) })
     end
 
@@ -209,6 +247,53 @@ local function getPost(self)
     }
 end
 
+local function createPost(req)
+    -- Проверка метода.
+    if req.method ~= 'POST' then
+        return req:render({ json = errorResponse(3) })
+    end
+    -- Проверка валидности json.
+    local post
+    if not pcall(function() post = req:json()
+    end) then
+        return req:render({ json = errorResponse(2) })
+    end
+    -- Проверка обязательных параметров.
+    local req_params = { 'date', 'thread', 'message', 'user', 'forum' }
+    local opt_params = { 'parent', 'isApproved', 'isHighlighted', 'isEdited', 'isSpam', 'isDeleted' }
+
+    for _, v in pairs(req_params) do
+        if not post[v] then return req:render({ json = errorResponse(3) })
+        end
+    end
+
+
+    -- Формируем запрос.
+    local query = string.format(INSERT, 'Post', valuesToString())
+    if post.isAnonymous then
+        query = string.format([[
+        INSERT INTO User (email, isAnonymous)
+        VALUES (%q, %s)
+        ]], post.email, post.isAnonymous)
+    else
+        query = string.format([[
+        INSERT INTO User (email, username, about, name)
+        VALUES (%q, %q, %q, %q)
+        ]], post.email, post.username, post.about, post.name)
+    end
+
+    -- ВЫполняем запрос, проверяем результат.
+    local result, status = conn:execute(query)
+    if not result then
+        return req:render({ json = errorResponse(5) })
+    end
+
+    -- Получаем созданного пользователя.
+    query = string.format('SELECT * FROM User WHERE EMAIL = %q', post.email)
+    local created_user = conn:execute(query)[1]
+    return req:render({ json = newResponse(0, created_user) })
+end
+
 --------------
 -- User.
 --------------
@@ -217,18 +302,16 @@ local function createUser(req)
     if req.method ~= 'POST' then
         return req:render({ json = errorResponse(3) })
     end
-
     -- Проверка валидности json.
     local user
-    if not pcall(function() user = req:json() end) then
+    if not pcall(function() user = req:json()
+    end) then
         return req:render({ json = errorResponse(2) })
     end
-
     -- Проверка обязательных параметров.
     if user.email == nil then
         return req:render({ json = errorResponse(3) })
     end
-
     -- Формируем запрос.
     local query
     if user.isAnonymous then
@@ -281,7 +364,8 @@ local function updateProfile(req)
 
     -- Проверка валидности json.
     local user
-    if not pcall(function() user = req:json() end) then
+    if not pcall(function() user = req:json()
+    end) then
         return req:render({ json = errorResponse(2) })
     end
 
@@ -319,7 +403,8 @@ local function createThread(req)
     end
     -- Проверка валидности json.
     local thread
-    if not pcall(function() thread = req:json() end) then
+    if not pcall(function() thread = req:json()
+    end) then
         return req:render({ json = errorResponse(2) })
     end
     -- Проверка обязательных параметров.
@@ -408,6 +493,8 @@ server:route({ path = FORUM_PATH }, getForum)
 server:route({ path = FORUM_PATH .. '/create' }, createForum)
 server:route({ path = FORUM_PATH .. '/details' }, forumDetails)
 -- Post.
+server:route({ path = POST_PATH .. '/create' }, createPost)
+server:route({ path = POST_PATH .. '/details' }, postDetails)
 -- User.
 server:route({ path = USER_PATH .. '/create' }, createUser)
 server:route({ path = USER_PATH .. '/details' }, userDetails)
