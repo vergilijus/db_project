@@ -62,13 +62,19 @@ CREATE TABLE Thread (
   ENGINE = INNODB;
 
 CREATE TABLE Post (
-  id         INT AUTO_INCREMENT NOT NULL,
-  date       DATETIME           NOT NULL,
-  thread     INT                NOT NULL,
-  forum      VARCHAR(127)       NOT NULL,
-  user       VARCHAR(63)        NOT NULL,
-  parent     INT, # todo foreign key,
-  isApproved BOOLEAN,
+  id            INT AUTO_INCREMENT NOT NULL,
+  date          DATETIME           NOT NULL,
+  thread        INT                NOT NULL,
+  mesage        VARCHAR(5000)      NOT NULL,
+  user          VARCHAR(63)        NOT NULL,
+  forum         VARCHAR(127)       NOT NULL,
+  parent        INT, # todo foreign key,
+  isApproved    BOOL DEFAULT FALSE NOT NULL,
+  isHighlighted BOOL DEFAULT FALSE NOT NULL,
+  isEdited      BOOL DEFAULT FALSE NOT NULL,
+  isSpam        BOOL DEFAULT FALSE NOT NULL,
+  isDeleted     BOOL DEFAULT FALSE NOT NULL,
+
   PRIMARY KEY (id),
   FOREIGN KEY (thread)
   REFERENCES Thread (id),
