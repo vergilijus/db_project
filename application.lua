@@ -1,4 +1,4 @@
-#!                                    /usb/bin/env/tarantool
+#!                                      /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -71,6 +71,17 @@ local function decode(s)
         end
     end
     return cgi
+end
+
+local function add_related(s, obj)
+    if s == 'user' then
+        obj.user = getUser(obj.user)
+    end
+    if s == 'forum' then
+        local query = string.format('SELECT * FROM Forum WHERE short_name = %q', obj.forum)
+        obj.forum = conn:execute(query)[1]
+    end
+    return obj
 end
 
 -----------------
@@ -347,7 +358,7 @@ local function threadDetails(req)
         return req:render({ json = errorResponse(3) })
     end
 
---    local id = req:param('thread')
+    --    local id = req:param('thread')
     local params = decode(req.query)
     if not params.thread then
         return req:render({ json = errorResponse(2) })
@@ -365,13 +376,12 @@ local function threadDetails(req)
     if not related then
         return req:render({ json = newResponse(0, thread) })
     end
-    for _, v in pairs(related) do
-        if v == 'user' then
-            thread.user = getUser(thread.user)
-        end
-        if v == 'forum' then
-            local query = string.format('SELECT * FROM Forum WHERE short_name = %q', thread.forum)
-            thread.forum = conn:execute(query)[1]
+
+    if type(related) == 'string' then
+        thread = add_related(related, thread)
+    else
+        for _, v in pairs(related) do
+            thread = add_related(v, thread)
         end
     end
     return req:render({ json = newResponse(0, thread) })
