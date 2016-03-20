@@ -1,4 +1,4 @@
-#!                        /usb/bin/env/tarantool
+#!                                  /usb/bin/env/tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -45,6 +45,32 @@ local function getUser(email)
     end
 
     return user
+end
+
+local function unescape (s)
+    s = string.gsub(s, "+", " ")
+    s = string.gsub(s, "%%(%x%x)", function (h)
+        return string.char(tonumber(h, 16))
+    end)
+    return s
+end
+
+-- Парсер query_string.
+local function decode(s)
+    local cgi = {}
+    for name, value in string.gfind(s, "([^&=]+)=([^&=]+)") do
+        name = unescape(name)
+        value = unescape(value)
+        if cgi[name] then
+            local tmp = cgi[name]
+            cgi[name] = {}
+            table.insert(cgi[name], value)
+            table.insert(cgi[name], tmp)
+        else
+            cgi[name] = value
+        end
+    end
+    return cgi
 end
 
 -----------------
@@ -315,11 +341,53 @@ local function createThread(req)
     return req:render({ json = newResponse(0, created_thread[1]) })
 end
 
--- todo
+
+local function threadDetails(req)
+    if req.method ~= 'GET' then
+        return req:render({ json = errorResponse(3) })
+    end
+
+    local id = req:param('thread')
+    if not id then
+        return req:render({ json = errorResponse(2) })
+    end
+
+    local query = string.format([[
+        SELECT * FROM Thread WHERE id = %d]], id)
+    local thread, status = conn:execute(query)
+    thread = thread[1]
+    if not thread or status == 0 then
+        return req:render({ json = errorResponse(1) })
+    end
+
+    local related = req:param('related')
+    if not related then
+        --        goto skip
+    end
+    for _, v in pairs(related) do
+        if v == 'user' then
+            thread.user = getUser(thread.user)
+        end
+        if v == 'forum' then
+            local query = string.format('SELECT * FROM Forum WHERE id = %q', thread.forum)
+            thread.forum = conn:execute(query)
+        end
+    end
+    --    ::skip::
+    return req:render({ json = newResponse(0, thread) })
+end
 
 local httpd = require('http.server')
 
 local server = httpd.new('127.0.0.1', 8081)
+
+local function test(req)
+    if req.method ~= 'GET' then
+        return req:render({ json = errorResponse(3) })
+    end
+    local query_string = decode(req.query)
+    return req:render({ json = newResponse(0, query_string) })
+end
 
 -- Общие.
 server:route({ path = BASE_PATH .. '/status' }, status)
@@ -336,4 +404,7 @@ server:route({ path = USER_PATH .. '/details' }, userDetails)
 server:route({ path = USER_PATH .. '/updateProfile' }, updateProfile)
 -- Thread.
 server:route({ path = THREAD_PATH .. '/create' }, createThread)
+server:route({ path = THREAD_PATH .. '/details' }, threadDetails)
+-- Test.
+server:route({ path = BASE_PATH .. '/test' }, test)
 server:start()
