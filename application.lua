@@ -1,4 +1,4 @@
-#!                                                 /usb/bin/env/tarantool
+#! /usr/bin/env tarantool
 box.cfg {}
 
 local BASE_PATH = '/db/api'
@@ -125,9 +125,6 @@ end
 -- Общие.
 -----------------
 local function status(req)
-    if req.method ~= 'GET' then
-        return req:render({ json = errorResponse(3) })
-    end
 
     local fc = conn:execute('SELECT COUNT(*) AS forum FROM Forum')[1].forum
     local tc = conn:execute('SELECT COUNT(*) AS thread FROM Thread')[1].thread
@@ -146,9 +143,7 @@ end
 
 
 local function clear(req)
-    if req.method ~= 'GET' then
-        return req:render({ json = errorResponse(3) })
-    end
+
     conn:execute('SET FOREIGN_KEY_CHECKS = 0;')
     conn:execute('TRUNCATE TABLE User;')
     conn:execute('TRUNCATE TABLE Forum;')
@@ -171,9 +166,6 @@ end
 
 
 local function createForum(req)
-    if req.method ~= 'POST' then
-        return req:render({ json = errorResponse(3) })
-    end
 
     -- Проверка валидности json.
     local forum
@@ -213,9 +205,6 @@ end
 
 
 local function forumDetails(req)
-    if req.method ~= 'GET' then
-        return req:render({ json = errorResponse(3) })
-    end
 
     -- Проверяем параметры.
     local short_name = req:param('forum')
@@ -248,10 +237,7 @@ local function getPost(self)
 end
 
 local function createPost(req)
-    -- Проверка метода.
-    if req.method ~= 'POST' then
-        return req:render({ json = errorResponse(3) })
-    end
+
     -- Проверка валидности json.
     local post
     if not pcall(function() post = req:json()
@@ -298,10 +284,7 @@ end
 -- User.
 --------------
 local function createUser(req)
-    -- Проверка метода.
-    if req.method ~= 'POST' then
-        return req:render({ json = errorResponse(3) })
-    end
+
     -- Проверка валидности json.
     local user
     if not pcall(function() user = req:json()
@@ -340,10 +323,7 @@ end
 
 
 local function userDetails(req)
-    -- check method
-    if req.method ~= 'GET' then
-        return req:render({ json = errorResponse(3) })
-    end
+
     local email = req:param('user')
     if not email then
         return req:render({ json = errorResponse(2) })
@@ -358,9 +338,6 @@ end
 
 
 local function updateProfile(req)
-    if req.method ~= 'POST' then
-        return req:render({ json = errorResponse(3) })
-    end
 
     -- Проверка валидности json.
     local user
@@ -398,9 +375,7 @@ end
 -- Thread.
 --------------
 local function createThread(req)
-    if req.method ~= 'POST' then
-        return req:render({ json = errorResponse(3) })
-    end
+
     -- Проверка валидности json.
     local thread
     if not pcall(function() thread = req:json()
@@ -439,9 +414,6 @@ end
 
 
 local function threadDetails(req)
-    if req.method ~= 'GET' then
-        return req:render({ json = errorResponse(3) })
-    end
 
     --    local id = req:param('thread')
     local params = decode(req.query)
@@ -476,32 +448,46 @@ local httpd = require('http.server')
 
 local server = httpd.new('127.0.0.1', 8081)
 
-local function test(req)
-    if req.method ~= 'GET' then
-        return req:render({ json = errorResponse(3) })
-    end
-    local query_string = decode(req.query)
-    return req:render({ json = newResponse(0, query_string) })
+local function invalidRequest(req)
+    return req:render({ json = errorResponse(2) })
 end
 
+local function before_routes(req)
+    return req:redirect_to('/invalid_request')
+end
+
+
+
+local function test(req)
+    --    if req.method ~= 'GET' then
+    --        return req:render({ json = errorResponse(3) })
+    --    end
+    --    local query_string = decode(req.query)
+    return req:render({ json = newResponse(0, 'OK') })
+end
+
+
 -- Общие.
-server:route({ path = BASE_PATH .. '/status' }, status)
-server:route({ path = BASE_PATH .. '/clear' }, clear)
+server:route({ path = BASE_PATH .. '/status', method = 'GET' }, status)
+server:route({ path = BASE_PATH .. '/clear', method = 'GET' }, clear)
 
 -- Forum.
 server:route({ path = FORUM_PATH }, getForum)
-server:route({ path = FORUM_PATH .. '/create' }, createForum)
-server:route({ path = FORUM_PATH .. '/details' }, forumDetails)
+server:route({ path = FORUM_PATH .. '/create', method = 'POST' }, createForum)
+server:route({ path = FORUM_PATH .. '/details', method = 'GET' }, forumDetails)
 -- Post.
-server:route({ path = POST_PATH .. '/create' }, createPost)
-server:route({ path = POST_PATH .. '/details' }, postDetails)
+server:route({ path = POST_PATH .. '/create', method = 'POST' }, createPost)
+server:route({ path = POST_PATH .. '/details', method = 'GET' }, postDetails)
 -- User.
-server:route({ path = USER_PATH .. '/create' }, createUser)
-server:route({ path = USER_PATH .. '/details' }, userDetails)
-server:route({ path = USER_PATH .. '/updateProfile' }, updateProfile)
+server:route({ path = USER_PATH .. '/create', method = 'POST' }, createUser)
+server:route({ path = USER_PATH .. '/details', method = 'GET' }, userDetails)
+server:route({ path = USER_PATH .. '/updateProfile', method = 'POST' }, updateProfile)
 -- Thread.
-server:route({ path = THREAD_PATH .. '/create' }, createThread)
-server:route({ path = THREAD_PATH .. '/details' }, threadDetails)
+server:route({ path = THREAD_PATH .. '/create', method = 'POST' }, createThread)
+server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)
+-- Errors.
+server:route({ path = BASE_PATH .. '/error/object_not_found' }, notFound)
+server:route({ path = '/invalid_request' }, invalidRequest)
 -- Test.
-server:route({ path = BASE_PATH .. '/test' }, test)
+server:route({ path = BASE_PATH .. '/test', method = 'GET' }, test)
 server:start()
