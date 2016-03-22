@@ -1,4 +1,4 @@
-#!                 /usr/bin/env tarantool
+#!                     /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -322,23 +322,12 @@ local function userDetails(json_params)
 end
 
 
-local function updateProfile(req)
-
-    -- Проверка валидности json.
-    local user
-    if not pcall(function() user = req:json()
-    end) then
-        return req:render({ json = errorResponse(2) })
-    end
-
+local function updateProfile(json_params)
     -- Проверка обязательных параметров.
-    if not user
-            or not user.about
-            or not user.name
-            or not user.user then
-        return req:render({ json = errorResponse(3) })
+    if not checkReqParam(json_params, { 'about', 'name', 'user' }) then
+        return errorResponse(3)
     end
-
+    local user = json_params
     -- Формируем запрос.
     local query
     query = string.format([[
@@ -348,37 +337,24 @@ local function updateProfile(req)
     -- Выполняем запрос.
     local result, status = conn:execute(query)
     if not result or status == 0 then
-        return req:render({ json = errorResponse(1) })
+        return errorResponse(1)
     end
 
     -- Получаем обновленного пользователя.
     local created_user = getUser(user.user)
-    return req:render({ json = newResponse(0, created_user) })
+    return newResponse(0, created_user)
 end
 
 --------------
 -- Thread.
 --------------
-local function createThread(req)
+local function createThread(json_params)
 
-    -- Проверка валидности json.
-    local thread
-    if not pcall(function() thread = req:json()
-    end) then
-        return req:render({ json = errorResponse(2) })
-    end
     -- Проверка обязательных параметров.
-    if not thread
-            or not thread.forum
-            or not thread.title
-            or not thread.isClosed
-            or not thread.user
-            or not thread.date
-            or not thread.message
-            or not thread.slug then
-        return req:render({ json = errorResponse(3) })
+    if not checkReqParam(json_params, { 'forum', 'title', 'isClosed', 'user', 'date', 'message', 'slug' }) then
+        return errorResponse(3)
     end
-
+    local thread = json_params
     -- Формируем запрос.
     local query = string.format([[
         INSERT INTO Thread (forum, title, user, date, message, slug, isClosed)
@@ -392,18 +368,18 @@ local function createThread(req)
         SELECT * FROM Thread WHERE slug = %q]], thread.slug)
     local created_thread, status2 = conn:execute(query)
     if not created_thread or status2 == 0 then
-        return req:render({ json = newResponse(4, status1) })
+        return newResponse(4, status1)
     end
-    return req:render({ json = newResponse(0, created_thread[1]) })
+    return newResponse(0, created_thread[1])
 end
 
 
-local function threadDetails(req)
+local function threadDetails(json_params)
 
     --    local id = req:param('thread')
-    local params = decode(req.query)
+    local params = json_params
     if not params.thread then
-        return req:render({ json = errorResponse(2) })
+        return errorResponse(2)
     end
 
     local query = string.format([[
@@ -411,12 +387,12 @@ local function threadDetails(req)
     local thread, status = conn:execute(query)
     thread = thread[1]
     if not thread or status == 0 then
-        return req:render({ json = errorResponse(1) })
+        return errorResponse(1)
     end
 
     local related = params.related
     if not related then
-        return req:render({ json = newResponse(0, thread) })
+        return newResponse(0, thread)
     end
 
     if type(related) == 'string' then
@@ -426,8 +402,13 @@ local function threadDetails(req)
             thread = add_related(v, thread)
         end
     end
-    return req:render({ json = newResponse(0, thread) })
+    return newResponse(0, thread)
 end
+
+
+--------------
+-- Server.
+--------------
 
 local httpd = require('http.server')
 
@@ -477,7 +458,7 @@ server:route({ path = USER_PATH .. '/details', method = 'GET' }, userDetails)
 server:route({ path = USER_PATH .. '/updateProfile', method = 'POST' }, updateProfile)
 -- Thread.
 server:route({ path = THREAD_PATH .. '/create', method = 'POST' }, createThread)
---server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)
+server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)
 -- Errors.
 server:route({ path = BASE_PATH .. '/error/object_not_found' }, notFound)
 server:route({ path = '/invalid_request' }, invalidRequest)
