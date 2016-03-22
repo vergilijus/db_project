@@ -1,5 +1,8 @@
-#! /usr/bin/env tarantool
-box.cfg {}
+#!            /usr/bin/env tarantool
+box.cfg {
+    log_level = 10,
+    logger = '/home/gantz/tarantool_db_api.log'
+}
 
 local BASE_PATH = '/db/api'
 local FORUM_PATH = BASE_PATH .. '/forum'
@@ -10,6 +13,7 @@ local THREAD_PATH = BASE_PATH .. '/thread'
 local mysql = require('mysql')
 local json = require('json')
 local conn = mysql.connect({ host = localhost, user = 'root', password = 'root', db = 'technopark' })
+local log = require('log')
 
 local function newResponse(code, response)
     return {
@@ -67,7 +71,13 @@ local function decode(s)
             local tmp = cgi[name]
             cgi[name] = {}
             table.insert(cgi[name], value)
-            table.insert(cgi[name], tmp)
+            if type(tmp) == 'table' then
+                for k, v in pairs(tmp) do
+                    table.insert(cgi[name], v)
+                end
+            else
+                table.insert(cgi[name], tmp)
+            end
         else
             cgi[name] = value
         end
@@ -452,25 +462,52 @@ local function invalidRequest(req)
     return req:render({ json = errorResponse(2) })
 end
 
-local function before_routes(req)
-    return req:redirect_to('/invalid_request')
+local function pre_route_redirect(req)
+    return req:render({ text = 'Before route redirect' })
 end
 
-
-
-local function test(req)
-    --    if req.method ~= 'GET' then
-    --        return req:render({ json = errorResponse(3) })
-    --    end
-    --    local query_string = decode(req.query)
-    return req:render({ json = newResponse(0, 'OK') })
+local function before_routes_hook(server, req)
+    log.info('_hook: before route')
 end
 
+local function aftere_dispatch_hook(req, resp)
+    log.info('_hook: after dispatch')
+    resp = req:render({})
+end
 
+local function test(json_params)
+    log.info('_handler')
+    --    if not pcall(req:json()) then return {code = 2} end
+    return newResponse(0, json_params)
+end
+
+local function error_redirect(req)
+    return errorResponse()
+end
+
+server:hook('before_dispatch', function(self, request)
+    log.info('_hook: before_dispatch')
+    local json_params
+    if request.method == 'GET' then
+        json_params = decode(request.query)
+    elseif request.method == 'POST' then
+        if not pcall(function() json_params = request:json() end) then
+            return { response:errorResponse(2) }
+        end
+    end
+    return json_params
+end)
+
+server:hook('after_dispatch', function(self, request, request_override, response_data)
+    log.info('_hook: after_dispatch')
+    return request:render({ json = request_override })
+end)
+
+--server:hook('before_routes', before_routes_hook)
+--server:hook('after_dispatch', aftere_dispatch_hook)
 -- Общие.
 server:route({ path = BASE_PATH .. '/status', method = 'GET' }, status)
 server:route({ path = BASE_PATH .. '/clear', method = 'GET' }, clear)
-
 -- Forum.
 server:route({ path = FORUM_PATH }, getForum)
 server:route({ path = FORUM_PATH .. '/create', method = 'POST' }, createForum)
@@ -484,10 +521,12 @@ server:route({ path = USER_PATH .. '/details', method = 'GET' }, userDetails)
 server:route({ path = USER_PATH .. '/updateProfile', method = 'POST' }, updateProfile)
 -- Thread.
 server:route({ path = THREAD_PATH .. '/create', method = 'POST' }, createThread)
-server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)
+--server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)
 -- Errors.
 server:route({ path = BASE_PATH .. '/error/object_not_found' }, notFound)
 server:route({ path = '/invalid_request' }, invalidRequest)
 -- Test.
-server:route({ path = BASE_PATH .. '/test', method = 'GET' }, test)
+server:route({ path = '/test' }, test)
+server:route({ path = '/redir' }, error_redirect)
+
 server:start()
