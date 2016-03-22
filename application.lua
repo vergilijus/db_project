@@ -1,4 +1,4 @@
-#!            /usr/bin/env tarantool
+#!              /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -458,27 +458,11 @@ local httpd = require('http.server')
 
 local server = httpd.new('127.0.0.1', 8081)
 
-local function invalidRequest(req)
-    return req:render({ json = errorResponse(2) })
-end
-
-local function pre_route_redirect(req)
-    return req:render({ text = 'Before route redirect' })
-end
-
-local function before_routes_hook(server, req)
-    log.info('_hook: before route')
-end
-
-local function aftere_dispatch_hook(req, resp)
-    log.info('_hook: after dispatch')
-    resp = req:render({})
-end
 
 local function test(json_params)
     log.info('_handler')
     --    if not pcall(req:json()) then return {code = 2} end
-    return newResponse(0, json_params)
+    return { asdfsafd = 'asdfasfasf' }
 end
 
 local function error_redirect(req)
@@ -492,15 +476,19 @@ server:hook('before_dispatch', function(self, request)
         json_params = decode(request.query)
     elseif request.method == 'POST' then
         if not pcall(function() json_params = request:json() end) then
-            return { response:errorResponse(2) }
+            return { response = errorResponse(2) }
         end
     end
+    log.info(json_params)
     return json_params
 end)
 
-server:hook('after_dispatch', function(self, request, request_override, response_data)
+server:hook('after_dispatch', function(self, request, json_param, response_data)
     log.info('_hook: after_dispatch')
-    return request:render({ json = request_override })
+    --    local code = request_override.
+    --    if request_override.code == 0 then
+    return request:render({ json = response_data })
+    --    end
 end)
 
 --server:hook('before_routes', before_routes_hook)
