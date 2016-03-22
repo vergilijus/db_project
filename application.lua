@@ -171,6 +171,7 @@ end
 
 
 local function clear(req)
+    conn:begin()
     conn:execute('SET FOREIGN_KEY_CHECKS = 0;')
     conn:execute('TRUNCATE TABLE User;')
     conn:execute('TRUNCATE TABLE Forum;')
@@ -178,6 +179,7 @@ local function clear(req)
     conn:execute('TRUNCATE TABLE Thread;')
     conn:execute('TRUNCATE TABLE Followers;')
     conn:execute('SET FOREIGN_KEY_CHECKS = 1;')
+    conn:commit()
     return newResponse(0, 'OK')
 end
 
@@ -481,7 +483,7 @@ end)
 --server:hook('after_dispatch', aftere_dispatch_hook)
 -- Общие.
 server:route({ path = BASE_PATH .. '/status', method = 'GET' }, status)
-server:route({ path = BASE_PATH .. '/clear', method = 'GET' }, clear)
+server:route({ path = BASE_PATH .. '/clear', method = 'POST' }, clear)
 -- Forum.
 server:route({ path = FORUM_PATH }, getForum)
 server:route({ path = FORUM_PATH .. '/create', method = 'POST' }, createForum)
