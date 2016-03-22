@@ -295,10 +295,10 @@ local function postDetails(json_params)
                 post.user = getUser(post.user)
             end
             if v == 'thread' then
-                post.thread = conn:execute('SELECT * FROM Thread WHERE id = ?', post.thread)
+                post.thread = conn:execute('SELECT * FROM Thread WHERE id = ?', post.thread)[1]
             end
             if v == 'forum' then
-                post.forum = conn:execute('SELECT * FROM Forum WHERE short_name = ?', post.forum)
+                post.forum = conn:execute('SELECT * FROM Forum WHERE short_name = ?', post.forum)[1]
             end
         end
     end

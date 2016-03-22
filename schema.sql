@@ -28,10 +28,10 @@ CREATE TABLE Followers (
 );
 
 CREATE TABLE Forum (
-  id         INT AUTO_INCREMENT NOT NULL,
-  name       VARCHAR(127)       NOT NULL,
-  short_name VARCHAR(127)       NOT NULL,
-  user       VARCHAR(63)        NOT NULL,
+  id         INT UNSIGNED AUTO_INCREMENT NOT NULL,
+  name       VARCHAR(127)                NOT NULL,
+  short_name VARCHAR(127)                NOT NULL,
+  user       VARCHAR(63)                 NOT NULL,
   PRIMARY KEY (short_name),
   UNIQUE KEY (id),
   FOREIGN KEY (user)
@@ -39,19 +39,19 @@ CREATE TABLE Forum (
 );
 
 CREATE TABLE Thread (
-  id        INT AUTO_INCREMENT     NOT NULL,
-  date      DATETIME               NOT NULL,
-  title     VARCHAR(255)           NOT NULL,
-  forum     VARCHAR(127)           NOT NULL,
-  isClosed  BOOLEAN DEFAULT FALSE  NOT NULL,
-  isDeleted BOOLEAN DEFAULT FALSE  NOT NULL,
-  message   VARCHAR(5000)          NOT NULL,
-  slug      VARCHAR(255)           NOT NULL,
-  user      VARCHAR(63)            NOT NULL,
-  likes     INT UNSIGNED DEFAULT 0 NOT NULL,
-  dislikes  INT UNSIGNED DEFAULT 0 NOT NULL,
-  points    BIGINT DEFAULT 0       NOT NULL,
-  posts     INT UNSIGNED DEFAULT 0 NOT NULL,
+  id        INT UNSIGNED AUTO_INCREMENT NOT NULL,
+  date      DATETIME                    NOT NULL,
+  title     VARCHAR(255)                NOT NULL,
+  forum     VARCHAR(127)                NOT NULL,
+  isClosed  BOOLEAN DEFAULT FALSE       NOT NULL,
+  isDeleted BOOLEAN DEFAULT FALSE       NOT NULL,
+  message   VARCHAR(5000)               NOT NULL,
+  slug      VARCHAR(255)                NOT NULL,
+  user      VARCHAR(63)                 NOT NULL,
+  likes     INT UNSIGNED DEFAULT 0      NOT NULL,
+  dislikes  INT UNSIGNED DEFAULT 0      NOT NULL,
+  points    BIGINT DEFAULT 0            NOT NULL,
+  posts     INT UNSIGNED DEFAULT 0      NOT NULL,
   PRIMARY KEY (id),
   FOREIGN KEY (forum)
   REFERENCES Forum (short_name),
@@ -62,18 +62,18 @@ CREATE TABLE Thread (
   ENGINE = INNODB;
 
 CREATE TABLE Post (
-  id            INT AUTO_INCREMENT NOT NULL,
-  date          DATETIME           NOT NULL,
-  thread        INT                NOT NULL,
-  message       VARCHAR(5000)      NOT NULL,
-  user          VARCHAR(63)        NOT NULL,
-  forum         VARCHAR(127)       NOT NULL,
-  parent        INT, # todo foreign key,
-  isApproved    BOOL DEFAULT FALSE NOT NULL,
-  isHighlighted BOOL DEFAULT FALSE NOT NULL,
-  isEdited      BOOL DEFAULT FALSE NOT NULL,
-  isSpam        BOOL DEFAULT FALSE NOT NULL,
-  isDeleted     BOOL DEFAULT FALSE NOT NULL,
+  id            INT UNSIGNED AUTO_INCREMENT NOT NULL,
+  date          DATETIME                    NOT NULL,
+  thread        INT UNSIGNED                NOT NULL,
+  message       VARCHAR(5000)               NOT NULL,
+  user          VARCHAR(63)                 NOT NULL,
+  forum         VARCHAR(127)                NOT NULL,
+  parent        INT UNSIGNED DEFAULT FALSE, # todo foreign key,
+  isApproved    BOOL DEFAULT FALSE          NOT NULL,
+  isHighlighted BOOL DEFAULT FALSE          NOT NULL,
+  isEdited      BOOL DEFAULT FALSE          NOT NULL,
+  isSpam        BOOL DEFAULT FALSE          NOT NULL,
+  isDeleted     BOOL DEFAULT FALSE          NOT NULL,
 
   PRIMARY KEY (id),
   FOREIGN KEY (thread)
