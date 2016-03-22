@@ -1,4 +1,4 @@
-#!                        /usr/bin/env tarantool
+#!                             /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -138,6 +138,18 @@ local function checkReqParam(json_params, param_list)
     return true
 end
 
+
+local function getValues(tbl)
+    local keys = {}
+    local values = {}
+    for k, v in pairs(tbl) do
+        table.insert(keys, k)
+        table.insert(values, v)
+    end
+    return values
+end
+
+
 -----------------
 -- Общие.
 -----------------
@@ -251,20 +263,21 @@ local function createPost(json_params)
     local values = ''
     for k, v in pairs(json_params) do
         fields = fields .. string.format('%s,', k)
-        values = values .. string.format('%q,', v)
+        values = values .. '?,'
     end
     fields = string.sub(fields, 1, -2)
-    values = string.sub(values, 1, -3)
+    values = string.sub(values, 1, -2)
 
-
-    -- Выполняем запрос, проверяем результат.
-    if not result then
-        return errorResponse(5)
-    end
-
+    local query = string.format('INSERT INTO Post (%s) VALUES (%s)', fields, values)
+--    values = getPairs(json_params)
+    local val = getValues(json_params)
+    local result, status = conn:execute(query, unpack(val))
+--    if not result or status ~= 0 then
+--        return errorResponse(4)
+--    end
     -- Получаем созданный пост.
-    local created_user = conn:execute('SELECT * FROM Post WHERE EMAIL = ?', post.email)[1]
-    return newResponse(0, created_user)
+    --    local created_user = conn:execute('SELECT * FROM Post WHERE EMAIL = ?', post.email)[1]
+    return newResponse(0, { val = val, fields = fields, query = query, json_params = json_params, db = {result = result, status = status}})
 end
 
 --------------
@@ -413,13 +426,16 @@ local server = httpd.new('127.0.0.1', 8081)
 
 local function test(json_params)
     log.info('_handler')
-    if not checkReqParam(json_params, { 'a', 'b', 'c' }) then return errorResponse(3) end
+    --    if not checkReqParam(json_params, { 'a', 'b', 'c' }) then return errorResponse(3) end
     return newResponse(0, 'ok')
 end
 
 server:hook('before_dispatch', function(self, request)
     log.info('_hook: before_dispatch')
     local json_params
+    --    if true then
+    --        return { response = request:query_param(nil) }
+    --    end
     if request.method == 'GET' then
         json_params = decode(request.query)
     elseif request.method == 'POST' then
