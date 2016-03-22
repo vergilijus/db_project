@@ -1,4 +1,4 @@
-#!                             /usr/bin/env tarantool
+#!                                  /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -281,6 +281,26 @@ local function createPost(json_params)
     return newResponse(0, created_post)
 end
 
+local function postDetails(json_params)
+    if not json_params.post then return errorResponse(3) end
+    local post, status = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)[1]
+    if json_params.related then
+        for k, v in pairs(json_params.related) do
+            if v == 'user' then
+                post.user = getUser(post.user)
+            end
+            if v == 'thread' then
+                post.thread = conn:execute('SELECT * FROM Thread WHERE id = ?', post.thread)
+            end
+            if v == 'forum' then
+                post.forum = conn:execute('SELECT * FROM Forum WHERE short_name = ?', post.forum)
+            end
+        end
+    end
+
+    return newResponse(0, post)
+end
+
 --------------
 -- User.
 --------------
@@ -440,7 +460,8 @@ server:hook('before_dispatch', function(self, request)
     if request.method == 'GET' then
         json_params = decode(request.query)
     elseif request.method == 'POST' then
-        if not pcall(function() json_params = request:json() end) then
+        if not pcall(function() json_params = request:json()
+        end) then
             return { response = errorResponse(2) }
         end
     end
