@@ -280,7 +280,7 @@ local function createPost(json_params)
     conn:commit()
     if not created_post then return newResponse(4, status) end
     --    local created_user = conn:execute('SELECT * FROM Post WHERE EMAIL = ?', post.email)[1]
-    return newResponse(0, created_post)
+    return newResponse(0, created_post[1])
 end
 
 local function postDetails(json_params)
