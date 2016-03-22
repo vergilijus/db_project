@@ -1,4 +1,4 @@
-#!                     /usr/bin/env tarantool
+#!                        /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -246,29 +246,25 @@ local function createPost(json_params)
     local opt_params = { 'parent', 'isApproved', 'isHighlighted', 'isEdited', 'isSpam', 'isDeleted' }
     if not checkReqParam(json_params, req_params) then errorResponse(3) end
     local post = json_params
-    -- Формируем запрос.
-    local query = string.format(INSERT, 'Post', valuesToString())
-    if post.isAnonymous then
-        query = string.format([[
-        INSERT INTO User (email, isAnonymous)
-        VALUES (%q, %s)
-        ]], post.email, post.isAnonymous)
-    else
-        query = string.format([[
-        INSERT INTO User (email, username, about, name)
-        VALUES (%q, %q, %q, %q)
-        ]], post.email, post.username, post.about, post.name)
-    end
 
-    -- ВЫполняем запрос, проверяем результат.
-    local result, status = conn:execute(query)
+    local fields = ''
+    local values = ''
+    for k, v in pairs(json_params) do
+        fields = fields .. string.format('%s,', k)
+        values = values .. string.format('%q,', v)
+    end
+    fields = string.sub(fields, 1, -2)
+    values = string.sub(values, 1, -3)
+
+
+    -- Выполняем запрос, проверяем результат.
     if not result then
         return errorResponse(5)
     end
 
     -- Получаем созданный пост.
     local created_user = conn:execute('SELECT * FROM Post WHERE EMAIL = ?', post.email)[1]
-    return req:render({ json = newResponse(0, created_user) })
+    return newResponse(0, created_user)
 end
 
 --------------
