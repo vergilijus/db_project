@@ -1,4 +1,4 @@
-#!                                  /usr/bin/env tarantool
+#!                                   /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -283,7 +283,10 @@ end
 
 local function postDetails(json_params)
     if not json_params.post then return errorResponse(3) end
-    local post, status = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)[1]
+    local post = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)[1]
+    if not post then
+        return errorResponse(1)
+    end
     if json_params.related then
         for k, v in pairs(json_params.related) do
             if v == 'user' then
