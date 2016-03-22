@@ -1,4 +1,4 @@
-#!              /usr/bin/env tarantool
+#!               /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -129,6 +129,13 @@ local function valuesToString(req, opt, obj)
         s = string.format(s, cur_value) .. ',%q'
     end
     return string.sub(s, 1, -4)
+end
+
+local function checkReqParam(json_params, param_list)
+    for k, v in pairs(param_list) do
+        if not json_params[v] then return false end
+    end
+    return true
 end
 
 -----------------
@@ -461,12 +468,8 @@ local server = httpd.new('127.0.0.1', 8081)
 
 local function test(json_params)
     log.info('_handler')
-    --    if not pcall(req:json()) then return {code = 2} end
-    return { asdfsafd = 'asdfasfasf' }
-end
-
-local function error_redirect(req)
-    return errorResponse()
+    if not checkReqParam(json_params, {'a', 'b', 'c'}) then return errorResponse(3) end
+    return newResponse(0, 'ok')
 end
 
 server:hook('before_dispatch', function(self, request)
@@ -485,10 +488,7 @@ end)
 
 server:hook('after_dispatch', function(self, request, json_param, response_data)
     log.info('_hook: after_dispatch')
-    --    local code = request_override.
-    --    if request_override.code == 0 then
     return request:render({ json = response_data })
-    --    end
 end)
 
 --server:hook('before_routes', before_routes_hook)
