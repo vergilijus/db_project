@@ -1,4 +1,4 @@
-#!               /usr/bin/env tarantool
+#!                 /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -148,19 +148,17 @@ local function status(req)
     local pc = conn:execute('SELECT COUNT(*) AS post FROM Post')[1].post
     local uc = conn:execute('SELECT COUNT(*) AS user FROM User')[1].user
 
-    local response = newResponse(0,
+    return newResponse(0,
         {
             user = uc,
             thread = tc,
             forum = fc,
             post = pc,
         })
-    return req:render({ json = response })
 end
 
 
 local function clear(req)
-
     conn:execute('SET FOREIGN_KEY_CHECKS = 0;')
     conn:execute('TRUNCATE TABLE User;')
     conn:execute('TRUNCATE TABLE Forum;')
@@ -168,8 +166,7 @@ local function clear(req)
     conn:execute('TRUNCATE TABLE Thread;')
     conn:execute('TRUNCATE TABLE Followers;')
     conn:execute('SET FOREIGN_KEY_CHECKS = 1;')
-    local response = newResponse(0, 'OK')
-    return req:render({ json = response })
+    return newResponse(0, 'OK')
 end
 
 --------------
@@ -182,28 +179,17 @@ local function getForum(self)
 end
 
 
-local function createForum(req)
-
-    -- Проверка валидности json.
-    local forum
-    if not pcall(function() forum = req:json()
-    end) then
-        return req:render({ json = errorResponse(2) })
-    end
-
+local function createForum(json_params)
     -- Проверяем параметры.
-    if not forum
-            or not forum.name
-            or not forum.short_name
-            or not forum.user then
-        return req:render({ json = errorResponse(3) })
+    if not checkReqParam(json_params, { 'name', 'short_name', 'user' }) then
+        return errorResponse(3)
     end
-
+    local forum = json_params
     -- Формируем запрос.
     local query = string.format([[
         INSERT INTO Forum (name, short_name, user)
         VALUES (%q, %q, %q)]], forum.name, forum.short_name, forum.user)
-    local result, status = conn:execute(query)
+    local _, status = conn:execute(query)
 
     -- Получаем созданный форум.
     query = string.format([[
@@ -214,19 +200,19 @@ local function createForum(req)
     if not created_forum
             or created_forum.name ~= forum.name
             or created_forum.user ~= forum.user then
-        return req:render({ json = newResponse(4, status) })
+        return newResponse(4, status)
     end
 
-    return req:render({ json = newResponse(0, created_forum) })
+    return newResponse(0, created_forum)
 end
 
 
-local function forumDetails(req)
+local function forumDetails(json_params)
 
     -- Проверяем параметры.
-    local short_name = req:param('forum')
+    local short_name = json_params.forum
     if not short_name then
-        return req:render({ json = errorResponse(2) })
+        return errorResponse(2)
     end
 
     -- Формируем запрос.
@@ -235,13 +221,13 @@ local function forumDetails(req)
 
     local forum = conn:execute(query)[1]
     if not forum then
-        return req:render({ json = errorResponse(1) })
+        return errorResponse(1)
     end
 
-    if req:param('related') == 'user' then
+    if json_params.related == 'user' then
         forum.user = getUser(forum.user)
     end
-    return req:render({ json = newResponse(0, forum) })
+    return newResponse(0, forum)
 end
 
 --------------
@@ -253,24 +239,13 @@ local function getPost(self)
     }
 end
 
-local function createPost(req)
+local function createPost(json_params)
 
-    -- Проверка валидности json.
-    local post
-    if not pcall(function() post = req:json()
-    end) then
-        return req:render({ json = errorResponse(2) })
-    end
     -- Проверка обязательных параметров.
     local req_params = { 'date', 'thread', 'message', 'user', 'forum' }
     local opt_params = { 'parent', 'isApproved', 'isHighlighted', 'isEdited', 'isSpam', 'isDeleted' }
-
-    for _, v in pairs(req_params) do
-        if not post[v] then return req:render({ json = errorResponse(3) })
-        end
-    end
-
-
+    if not checkReqParam(json_params, req_params) then errorResponse(3) end
+    local post = json_params
     -- Формируем запрос.
     local query = string.format(INSERT, 'Post', valuesToString())
     if post.isAnonymous then
@@ -288,12 +263,11 @@ local function createPost(req)
     -- ВЫполняем запрос, проверяем результат.
     local result, status = conn:execute(query)
     if not result then
-        return req:render({ json = errorResponse(5) })
+        return errorResponse(5)
     end
 
-    -- Получаем созданного пользователя.
-    query = string.format('SELECT * FROM User WHERE EMAIL = %q', post.email)
-    local created_user = conn:execute(query)[1]
+    -- Получаем созданный пост.
+    local created_user = conn:execute('SELECT * FROM Post WHERE EMAIL = ?', post.email)[1]
     return req:render({ json = newResponse(0, created_user) })
 end
 
@@ -334,18 +308,17 @@ local function createUser(json_params)
 end
 
 
-local function userDetails(req)
+local function userDetails(json_params)
 
-    local email = req:param('user')
+    local email = json_params.user
     if not email then
-        return req:render({ json = errorResponse(2) })
+        return errorResponse(2)
     end
     local details = getUser(email)
     if not details then
-        return req:render({ json = errorResponse(1) })
+        return errorResponse(1)
     end
-    local response = newResponse(0, details)
-    return req:render({ json = response })
+    return newResponse(0, details)
 end
 
 
@@ -463,7 +436,7 @@ local server = httpd.new('127.0.0.1', 8081)
 
 local function test(json_params)
     log.info('_handler')
-    if not checkReqParam(json_params, {'a', 'b', 'c'}) then return errorResponse(3) end
+    if not checkReqParam(json_params, { 'a', 'b', 'c' }) then return errorResponse(3) end
     return newResponse(0, 'ok')
 end
 
