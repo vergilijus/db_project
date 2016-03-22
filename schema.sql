@@ -65,7 +65,7 @@ CREATE TABLE Post (
   id            INT AUTO_INCREMENT NOT NULL,
   date          DATETIME           NOT NULL,
   thread        INT                NOT NULL,
-  mesage        VARCHAR(5000)      NOT NULL,
+  message       VARCHAR(5000)      NOT NULL,
   user          VARCHAR(63)        NOT NULL,
   forum         VARCHAR(127)       NOT NULL,
   parent        INT, # todo foreign key,

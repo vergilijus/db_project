@@ -255,9 +255,7 @@ local function createPost(json_params)
 
     -- Проверка обязательных параметров.
     local req_params = { 'date', 'thread', 'message', 'user', 'forum' }
-    local opt_params = { 'parent', 'isApproved', 'isHighlighted', 'isEdited', 'isSpam', 'isDeleted' }
     if not checkReqParam(json_params, req_params) then errorResponse(3) end
-    local post = json_params
 
     local fields = ''
     local values = ''
@@ -267,17 +265,20 @@ local function createPost(json_params)
     end
     fields = string.sub(fields, 1, -2)
     values = string.sub(values, 1, -2)
-
     local query = string.format('INSERT INTO Post (%s) VALUES (%s)', fields, values)
---    values = getPairs(json_params)
+    --    values = getPairs(json_params)
     local val = getValues(json_params)
+    conn:begin()
     local result, status = conn:execute(query, unpack(val))
---    if not result or status ~= 0 then
---        return errorResponse(4)
---    end
-    -- Получаем созданный пост.
+    if not result then
+        conn:rollback()
+        return newResponse(4, status)
+    end
+    local created_post, status = conn:execute('SELECT * FROM Post WHERE id = last_insert_id()')
+    conn:commit()
+    if not created_post then return newResponse(4, status) end
     --    local created_user = conn:execute('SELECT * FROM Post WHERE EMAIL = ?', post.email)[1]
-    return newResponse(0, { val = val, fields = fields, query = query, json_params = json_params, db = {result = result, status = status}})
+    return newResponse(0, created_post)
 end
 
 --------------
