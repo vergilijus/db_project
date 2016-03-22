@@ -300,17 +300,12 @@ end
 --------------
 -- User.
 --------------
-local function createUser(req)
+local function createUser(json_params)
 
-    -- Проверка валидности json.
-    local user
-    if not pcall(function() user = req:json()
-    end) then
-        return req:render({ json = errorResponse(2) })
-    end
+    local user = json_params
     -- Проверка обязательных параметров.
     if user.email == nil then
-        return req:render({ json = errorResponse(3) })
+        return errorResponse(3)
     end
     -- Формируем запрос.
     local query
@@ -329,13 +324,13 @@ local function createUser(req)
     -- ВЫполняем запрос, проверяем результат.
     local result, status = conn:execute(query)
     if not result then
-        return req:render({ json = errorResponse(5) })
+        return errorResponse(5)
     end
 
     -- Получаем созданного пользователя.
     query = string.format('SELECT * FROM User WHERE EMAIL = %q', user.email)
     local created_user = conn:execute(query)[1]
-    return req:render({ json = newResponse(0, created_user) })
+    return newResponse(0, created_user)
 end
 
 
