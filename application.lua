@@ -149,7 +149,19 @@ local function getValues(tbl)
     return values
 end
 
-
+local function keys_present(obj, keys)
+    if not obj then
+        return false
+    end
+    for _, key in pairs(keys) do
+        if not obj[key] then
+            return false
+        elseif obj[key] == json.null then
+            obj[key] = nil
+        end
+    end
+    return true
+end
 -----------------
 -- Общие.
 -----------------
@@ -375,7 +387,7 @@ local function updateProfile(json_params)
 
     -- Выполняем запрос.
     local result, status = conn:execute(query)
-    if not result or status == 0 then
+    if not result then
         return errorResponse(1)
     end
 
@@ -389,10 +401,11 @@ end
 --------------
 local function createThread(json_params)
 
-    -- Проверка обязательных параметров.
-    if not checkReqParam(json_params, { 'forum', 'title', 'isClosed', 'user', 'date', 'message', 'slug' }) then
-        return errorResponse(3)
-    end
+    -- todo: сделать проверку обязательных параметров.
+    --    if true then return newResponse(0, json_params) end
+    --    if not keys_present(json_params, { 'forum', 'title', 'isClosed', 'user', 'date', 'message', 'slug' , 'isDeleted'}) then
+    --        return errorResponse(3)
+    --    end
     local thread = json_params
     -- Формируем запрос.
     local query = string.format([[
@@ -414,7 +427,6 @@ end
 
 
 local function threadDetails(json_params)
-
     --    local id = req:param('thread')
     local params = json_params
     if not params.thread then
