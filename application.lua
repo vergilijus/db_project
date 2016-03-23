@@ -285,10 +285,11 @@ end
 
 local function postDetails(json_params)
     if not json_params.post then return errorResponse(3) end
-    local post = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)[1]
+    local post = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)
     if not post then
         return errorResponse(1)
     end
+    post = post[1]
     if json_params.related then
         for k, v in pairs(json_params.related) do
             if v == 'user' then
@@ -302,6 +303,8 @@ local function postDetails(json_params)
             end
         end
     end
+    -- Подпорка коннектора.
+    if post.parent == 0 then post.parent = json.null end
 
     return newResponse(0, post)
 end
