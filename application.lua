@@ -272,6 +272,7 @@ local function createPost(json_params)
     local val = getValues(json_params)
     conn:begin()
     local result, status = conn:execute(query, unpack(val))
+    local posts = conn:execute('UPDATE Thread SET posts = posts + 1')
     if not result then
         conn:rollback()
         return newResponse(4, status)
@@ -369,7 +370,7 @@ local function updateProfile(json_params)
     -- Формируем запрос.
     local query
     query = string.format([[
-    UPDATE User SET name = %q, about = %q WHERE email = %q;]],
+    UPDATE User SET name = %q, about = %q WHERE email = %q]],
         user.name, user.about, user.user)
 
     -- Выполняем запрос.
