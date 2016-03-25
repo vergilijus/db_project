@@ -14,7 +14,7 @@ local THREAD_PATH = BASE_PATH .. '/thread'
 local log = require 'log'
 local json = require 'json'
 local mysql = require 'mysql'
-local conn = mysql.connect({ host = localhost, user = 'tp_user', password = 'qwerty', db = 'db_api' })
+local conn = mysql.connect({ host = localhost, raise = true, user = 'tp_user', password = 'qwerty', db = 'db_api' })
 
 
 -- Common.
@@ -440,6 +440,7 @@ local server = httpd.new('127.0.0.1', 8081)
 local function test(json_params)
     log.info('_handler')
     --    if not checkReqParam(json_params, { 'a', 'b', 'c' }) then return errorResponse(3) end
+    conn:execute('someshit')
     return newResponse(0, 'ok')
 end
 
@@ -461,7 +462,12 @@ server:hook('before_dispatch', function(self, request)
     return json_params
 end)
 
-server:hook('after_dispatch', function(self, request, json_param, response_data)
+server:hook('after_handler_error', function(self, request, params, error)
+    log.info('_hook: after_handler_error')
+    return newResponse(4, error)
+end)
+
+server:hook('after_dispatch', function(self, request, params, response_data)
     log.info('_hook: after_dispatch')
     return request:render({ json = response_data })
 end)
