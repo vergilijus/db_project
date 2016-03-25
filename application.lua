@@ -1,4 +1,4 @@
-#!                                   /usr/bin/env tarantool
+#!                                       /usr/bin/env tarantool
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -12,8 +12,25 @@ local THREAD_PATH = BASE_PATH .. '/thread'
 
 local mysql = require('mysql')
 local json = require('json')
-local conn = mysql.connect({ host = localhost, user = 'root', password = 'root', db = 'technopark' })
+local conn = mysql.connect({ host = localhost, user = 'tp_user', password = 'qwerty', db = 'db_api' })
 local log = require('log')
+
+-- Common.
+local clear -- https://github.com/andyudina/technopark-db-api/blob/master/doc/clear.md
+local status -- https://github.com/andyudina/technopark-db-api/blob/master/doc/status.md
+-- Forum.
+local createForum -- https://github.com/andyudina/technopark-db-api/blob/master/doc/forum/create.md
+local forumDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/forum/details.md
+-- User.
+local createUser -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/create.md
+local userDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/details.md
+local updateProfile -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/updateProfile.md
+-- Post.
+local createPost -- https://github.com/andyudina/technopark-db-api/blob/master/doc/post/create.md
+local postDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/post/details.md
+-- Thread.
+local createThread -- https://github.com/andyudina/technopark-db-api/blob/master/doc/thread/create.md
+local threadDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/thread/details.md
 
 local function newResponse(code, response)
     return {
@@ -34,6 +51,8 @@ local function errorResponse(code)
     return newResponse(code, RESPONSES[code])
 end
 
+
+
 -------------------
 -- Вспомогательные.
 -------------------
@@ -46,9 +65,9 @@ local function getUser(email)
     user.followers = {}
     user.following = {}
     user.subscriptions = {}
-    for key, val in pairs(user) do
-        if val == '' then user[key] = json.null end
-    end
+    --    for key, val in pairs(user) do
+    --        if val == '' then user[key] = json.null end
+    --    end
 
     return user
 end
@@ -138,7 +157,6 @@ local function checkReqParam(json_params, param_list)
     return true
 end
 
-
 local function getValues(tbl)
     local keys = {}
     local values = {}
@@ -162,10 +180,11 @@ local function keys_present(obj, keys)
     end
     return true
 end
+
 -----------------
 -- Общие.
 -----------------
-local function status(req)
+status = function(req)
 
     local fc = conn:execute('SELECT COUNT(*) AS forum FROM Forum')[1].forum
     local tc = conn:execute('SELECT COUNT(*) AS thread FROM Thread')[1].thread
@@ -181,8 +200,7 @@ local function status(req)
         })
 end
 
-
-local function clear(req)
+clear = function(req)
     conn:begin()
     conn:execute('SET FOREIGN_KEY_CHECKS = 0;')
     conn:execute('TRUNCATE TABLE User;')
@@ -205,7 +223,7 @@ local function getForum(self)
 end
 
 
-local function createForum(json_params)
+createForum = function(json_params)
     -- Проверяем параметры.
     if not checkReqParam(json_params, { 'name', 'short_name', 'user' }) then
         return errorResponse(3)
@@ -232,8 +250,7 @@ local function createForum(json_params)
     return newResponse(0, created_forum)
 end
 
-
-local function forumDetails(json_params)
+forumDetails = function(json_params)
 
     -- Проверяем параметры.
     local short_name = json_params.forum
@@ -265,7 +282,7 @@ local function getPost(self)
     }
 end
 
-local function createPost(json_params)
+createPost = function(json_params)
 
     -- Проверка обязательных параметров.
     local req_params = { 'date', 'thread', 'message', 'user', 'forum' }
@@ -296,7 +313,7 @@ local function createPost(json_params)
     return newResponse(0, created_post[1])
 end
 
-local function postDetails(json_params)
+postDetails = function(json_params)
     if not json_params.post then return errorResponse(3) end
     local post = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)
     if not post then
@@ -317,7 +334,7 @@ local function postDetails(json_params)
         end
     end
     -- Подпорка коннектора.
-    if post.parent == 0 then post.parent = json.null end
+    --    if post.parent == 0 then post.parent = json.null end
 
     return newResponse(0, post)
 end
@@ -325,8 +342,7 @@ end
 --------------
 -- User.
 --------------
-local function createUser(json_params)
-
+createUser = function(json_params)
     local user = json_params
     -- Проверка обязательных параметров.
     if user.email == nil then
@@ -358,8 +374,7 @@ local function createUser(json_params)
     return newResponse(0, created_user)
 end
 
-
-local function userDetails(json_params)
+userDetails = function(json_params)
 
     local email = json_params.user
     if not email then
@@ -372,8 +387,7 @@ local function userDetails(json_params)
     return newResponse(0, details)
 end
 
-
-local function updateProfile(json_params)
+updateProfile = function(json_params)
     -- Проверка обязательных параметров.
     if not checkReqParam(json_params, { 'about', 'name', 'user' }) then
         return errorResponse(3)
@@ -399,7 +413,7 @@ end
 --------------
 -- Thread.
 --------------
-local function createThread(json_params)
+createThread = function(json_params)
 
     -- todo: сделать проверку обязательных параметров.
     --    if true then return newResponse(0, json_params) end
@@ -425,8 +439,7 @@ local function createThread(json_params)
     return newResponse(0, created_thread[1])
 end
 
-
-local function threadDetails(json_params)
+threadDetails = function(json_params)
     --    local id = req:param('thread')
     local params = json_params
     if not params.thread then
@@ -462,7 +475,6 @@ end
 --------------
 
 local httpd = require('http.server')
-
 local server = httpd.new('127.0.0.1', 8081)
 
 
@@ -495,8 +507,7 @@ server:hook('after_dispatch', function(self, request, json_param, response_data)
     return request:render({ json = response_data })
 end)
 
---server:hook('before_routes', before_routes_hook)
---server:hook('after_dispatch', aftere_dispatch_hook)
+
 -- Общие.
 server:route({ path = BASE_PATH .. '/status', method = 'GET' }, status)
 server:route({ path = BASE_PATH .. '/clear', method = 'POST' }, clear)
