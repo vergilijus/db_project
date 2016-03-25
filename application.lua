@@ -1,4 +1,4 @@
-#!                                          /usr/bin/env tarantool
+#!                                                  /usr/bin/env tarantool
 
 box.cfg {
     log_level = 10,
@@ -67,9 +67,6 @@ local function getUser(email)
     user.followers = {}
     user.following = {}
     user.subscriptions = {}
-    --    for key, val in pairs(user) do
-    --        if val == '' then user[key] = json.null end
-    --    end
     return user
 end
 
@@ -96,6 +93,26 @@ local function keysPresent(obj, keys)
         end
     end
     return true
+end
+
+local function validRelated(related, values)
+    if not related then return true end
+    if type(related) == 'string' then
+        for _, v in pairs(values) do
+            if related == v then return true end
+        end
+        return false
+    end
+    if type(related) ~= 'table' or #related > #values then
+        return false
+    end
+    local counter = #related
+    for _, rel in pairs(related) do
+        for _, val in pairs(values) do
+            if rel == val then counter = counter - 1 end
+        end
+    end
+    return counter == 0
 end
 
 local function getValues(tbl)
@@ -210,15 +227,15 @@ local function getPost(self)
     }
 end
 
-createPost = function(json_params)
+createPost = function(params)
 
     -- Проверка обязательных параметров.
     local req_params = { 'date', 'thread', 'message', 'user', 'forum' }
-    if not keysPresent(json_params, req_params) then errorResponse(3) end
-
+    if not keysPresent(params, req_params) then errorResponse(3) end
+    if params.parent == json.null then params.parent = nil end
     local fields = ''
     local values = ''
-    for k, v in pairs(json_params) do
+    for k, v in pairs(params) do
         fields = fields .. string.format('%s,', k)
         values = values .. '?,'
     end
@@ -226,7 +243,7 @@ createPost = function(json_params)
     values = string.sub(values, 1, -2)
     local query = string.format('INSERT INTO Post (%s) VALUES (%s)', fields, values)
     --    values = getPairs(json_params)
-    local val = getValues(json_params)
+    local val = getValues(params)
     conn:begin()
     local result, status = conn:execute(query, unpack(val))
     local posts = conn:execute('UPDATE Thread SET posts = posts + 1')
@@ -243,8 +260,8 @@ end
 
 postDetails = function(json_params)
     if not json_params.post then return errorResponse(3) end
-    local post = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)
-    if not post then
+    local post, nrows = conn:execute('SELECT * FROM Post WHERE id = ?', json_params.post)
+    if not post or nrows ~= 1 then
         return errorResponse(1)
     end
     post = post[1]
@@ -261,8 +278,6 @@ postDetails = function(json_params)
             end
         end
     end
-    -- Подпорка коннектора.
-    --    if post.parent == 0 then post.parent = json.null end
 
     return newResponse(0, post)
 end
@@ -270,10 +285,10 @@ end
 --------------
 -- User.
 --------------
-createUser = function(json_params)
-    local user = json_params
+createUser = function(params)
+    local user = params
     -- Проверка обязательных параметров.
-    if not user.email then
+    if not keysPresent(params, { 'username', 'about', 'name', 'email' }) then
         return errorResponse(3)
     end
     -- Формируем запрос.
@@ -290,9 +305,8 @@ createUser = function(json_params)
         ]], user.email, user.username, user.about, user.name)
     end
 
-    -- ВЫполняем запрос, проверяем результат.
-    local result, status = conn:execute(query)
-    if not result then
+    -- Выполняем запрос, проверяем результат.
+    if not pcall(function() conn:execute(query) end) then
         return errorResponse(5)
     end
 
@@ -366,11 +380,10 @@ createThread = function(json_params)
     return newResponse(0, created_thread[1])
 end
 
-threadDetails = function(json_params)
-    --    local id = req:param('thread')
-    local params = json_params
-    if not params.thread then
-        return errorResponse(2)
+threadDetails = function(params)
+    if not params.thread
+            or not validRelated(params.related, { 'user', 'forum' }) then
+        return errorResponse(3)
     end
 
     local query = string.format([[
@@ -407,7 +420,7 @@ local server = httpd.new('127.0.0.1', 8081)
 local function test(params)
     log.info('_handler')
     --    if not checkReqParam(json_params, { 'a', 'b', 'c' }) then return errorResponse(3) end
---    conn:execute('someshit')
+    --    conn:execute('someshit')
     return newResponse(0, params)
 end
 
@@ -417,7 +430,7 @@ server:hook('before_dispatch', function(self, request)
     local params
     if request.method == 'GET' then
         params = request:query_param()
---        params = decode(request.query)
+        --        params = decode(request.query)
     elseif request.method == 'POST' then
         if not pcall(function() params = request:json() end) then
             return { response = errorResponse(2) }
