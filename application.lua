@@ -1,4 +1,5 @@
 #!                                       /usr/bin/env tarantool
+
 box.cfg {
     log_level = 10,
     logger = '/home/gantz/tarantool_db_api.log'
@@ -10,10 +11,11 @@ local POST_PATH = BASE_PATH .. '/post'
 local USER_PATH = BASE_PATH .. '/user'
 local THREAD_PATH = BASE_PATH .. '/thread'
 
-local mysql = require('mysql')
-local json = require('json')
+local log = require 'log'
+local json = require 'json'
+local mysql = require 'mysql'
 local conn = mysql.connect({ host = localhost, user = 'tp_user', password = 'qwerty', db = 'db_api' })
-local log = require('log')
+
 
 -- Common.
 local clear -- https://github.com/andyudina/technopark-db-api/blob/master/doc/clear.md
@@ -113,41 +115,6 @@ local function add_related(s, obj)
         obj.forum = conn:execute(query)[1]
     end
     return obj
-end
-
-local function commaConcat(obj)
-    local params = ''
-    for _, v in pairs(obj) do
-        params = params .. v .. ','
-    end
-    return string.sub(params, 1, -2)
-end
-
-local function fieldsToString(req, opt)
-    local params = ''
-    for _, v in pairs(req) do
-        params = params .. v .. ','
-    end
-    for _, v in pairs(opt) do
-        params = params .. v .. ','
-    end
-    return string.sub(params, 1, -2)
-end
-
-local function valuesToString(req, opt, obj)
-    local s = '%q'
-    for _, v in pairs(req) do
-        s = string.format(s, obj[v]) .. ',%q'
-    end
-
-    for _, v in pairs(opt) do
-        local cur_value = 'DEFAULT'
-        if obj[v] then
-            cur_value = obj[v]
-        end
-        s = string.format(s, cur_value) .. ',%q'
-    end
-    return string.sub(s, 1, -4)
 end
 
 local function checkReqParam(json_params, param_list)
@@ -469,12 +436,11 @@ threadDetails = function(json_params)
     return newResponse(0, thread)
 end
 
-
 --------------
 -- Server.
 --------------
 
-local httpd = require('http.server')
+local httpd = require 'http.server'
 local server = httpd.new('127.0.0.1', 8081)
 
 
