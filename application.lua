@@ -1,4 +1,4 @@
-#!                                         /usr/bin/env tarantool
+#!                                          /usr/bin/env tarantool
 
 box.cfg {
     log_level = 10,
@@ -70,40 +70,7 @@ local function getUser(email)
     --    for key, val in pairs(user) do
     --        if val == '' then user[key] = json.null end
     --    end
-
     return user
-end
-
-local function unescape(s)
-    s = string.gsub(s, "+", " ")
-    s = string.gsub(s, "%%(%x%x)", function(h)
-        return string.char(tonumber(h, 16))
-    end)
-    return s
-end
-
--- Парсер query_string.
-local function decode(s)
-    local cgi = {}
-    for name, value in string.gfind(s, "([^&=]+)=([^&=]+)") do
-        name = unescape(name)
-        value = unescape(value)
-        if cgi[name] then
-            local tmp = cgi[name]
-            cgi[name] = {}
-            table.insert(cgi[name], value)
-            if type(tmp) == 'table' then
-                for k, v in pairs(tmp) do
-                    table.insert(cgi[name], v)
-                end
-            else
-                table.insert(cgi[name], tmp)
-            end
-        else
-            cgi[name] = value
-        end
-    end
-    return cgi
 end
 
 local function add_related(s, obj)
@@ -184,12 +151,12 @@ local function getForum(self)
 end
 
 
-createForum = function(json_params)
+createForum = function(params)
     -- Проверяем параметры.
-    if not keysPresent(json_params, { 'name', 'short_name', 'user' }) then
+    if not keysPresent(params, { 'name', 'short_name', 'user' }) then
         return errorResponse(3)
     end
-    local forum = json_params
+    local forum = params
     -- Формируем запрос.
     local query = string.format([[
         INSERT INTO Forum (name, short_name, user)
@@ -211,10 +178,10 @@ createForum = function(json_params)
     return newResponse(0, created_forum)
 end
 
-forumDetails = function(json_params)
+forumDetails = function(params)
 
     -- Проверяем параметры.
-    local short_name = json_params.forum
+    local short_name = params.forum
     if not short_name then
         return errorResponse(2)
     end
@@ -228,7 +195,7 @@ forumDetails = function(json_params)
         return errorResponse(1)
     end
 
-    if json_params.related == 'user' then
+    if params.related == 'user' then
         forum.user = getUser(forum.user)
     end
     return newResponse(0, forum)
@@ -437,29 +404,27 @@ local httpd = require 'http.server'
 local server = httpd.new('127.0.0.1', 8081)
 
 
-local function test(json_params)
+local function test(params)
     log.info('_handler')
     --    if not checkReqParam(json_params, { 'a', 'b', 'c' }) then return errorResponse(3) end
-    conn:execute('someshit')
-    return newResponse(0, 'ok')
+--    conn:execute('someshit')
+    return newResponse(0, params)
 end
 
 server:hook('before_dispatch', function(self, request)
+    -- fixme: работают либо json параметры либо query_string
     log.info('_hook: before_dispatch')
-    local json_params
-    --    if true then
-    --        return { response = request:query_param(nil) }
-    --    end
+    local params
     if request.method == 'GET' then
-        json_params = decode(request.query)
+        params = request:query_param()
+--        params = decode(request.query)
     elseif request.method == 'POST' then
-        if not pcall(function() json_params = request:json()
-        end) then
+        if not pcall(function() params = request:json() end) then
             return { response = errorResponse(2) }
         end
     end
-    log.info(json_params)
-    return json_params
+    log.info(params)
+    return params
 end)
 
 server:hook('after_handler_error', function(self, request, params, error)
