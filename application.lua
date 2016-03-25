@@ -1,4 +1,4 @@
-#!                                       /usr/bin/env tarantool
+#!                                         /usr/bin/env tarantool
 
 box.cfg {
     log_level = 10,
@@ -117,9 +117,16 @@ local function add_related(s, obj)
     return obj
 end
 
-local function checkReqParam(json_params, param_list)
-    for k, v in pairs(param_list) do
-        if not json_params[v] then return false end
+local function keysPresent(obj, keys)
+    if not obj then
+        return false
+    end
+    for _, key in pairs(keys) do
+        if not obj[key] and obj[key] ~= json.null then
+            return false, key
+        elseif obj[key] == json.null then
+            obj[key] = nil
+        end
     end
     return true
 end
@@ -134,19 +141,6 @@ local function getValues(tbl)
     return values
 end
 
-local function keys_present(obj, keys)
-    if not obj then
-        return false
-    end
-    for _, key in pairs(keys) do
-        if not obj[key] then
-            return false
-        elseif obj[key] == json.null then
-            obj[key] = nil
-        end
-    end
-    return true
-end
 
 -----------------
 -- Общие.
@@ -192,7 +186,7 @@ end
 
 createForum = function(json_params)
     -- Проверяем параметры.
-    if not checkReqParam(json_params, { 'name', 'short_name', 'user' }) then
+    if not keysPresent(json_params, { 'name', 'short_name', 'user' }) then
         return errorResponse(3)
     end
     local forum = json_params
@@ -253,7 +247,7 @@ createPost = function(json_params)
 
     -- Проверка обязательных параметров.
     local req_params = { 'date', 'thread', 'message', 'user', 'forum' }
-    if not checkReqParam(json_params, req_params) then errorResponse(3) end
+    if not keysPresent(json_params, req_params) then errorResponse(3) end
 
     local fields = ''
     local values = ''
@@ -312,7 +306,7 @@ end
 createUser = function(json_params)
     local user = json_params
     -- Проверка обязательных параметров.
-    if user.email == nil then
+    if not user.email then
         return errorResponse(3)
     end
     -- Формируем запрос.
@@ -356,7 +350,7 @@ end
 
 updateProfile = function(json_params)
     -- Проверка обязательных параметров.
-    if not checkReqParam(json_params, { 'about', 'name', 'user' }) then
+    if not keysPresent(json_params, { 'about', 'name', 'user' }) then
         return errorResponse(3)
     end
     local user = json_params
@@ -382,7 +376,6 @@ end
 --------------
 createThread = function(json_params)
 
-    -- todo: сделать проверку обязательных параметров.
     --    if true then return newResponse(0, json_params) end
     --    if not keys_present(json_params, { 'forum', 'title', 'isClosed', 'user', 'date', 'message', 'slug' , 'isDeleted'}) then
     --        return errorResponse(3)
