@@ -86,7 +86,7 @@ local function keysPresent(obj, keys)
         return false
     end
     for _, key in pairs(keys) do
-        if not obj[key] and obj[key] ~= json.null then
+        if obj[key] == nil and obj[key] ~= json.null then
             return false, key
         elseif obj[key] == json.null then
             obj[key] = nil
