@@ -1,4 +1,4 @@
-#!                                                  /usr/bin/env tarantool
+#!                                                        /usr/bin/env tarantool
 
 box.cfg {
     log_level = 10,
@@ -27,6 +27,12 @@ local forumDetails -- https://github.com/andyudina/technopark-db-api/blob/master
 local createUser -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/create.md
 local userDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/details.md
 local updateProfile -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/updateProfile.md
+local follow -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/follow.md
+local listFollowers -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/listFollowers.md
+local listFollowing -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/listFollowing.md
+local listPosts -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/listPosts.md
+local unfollow -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/unfollow.md
+
 -- Post.
 local createPost -- https://github.com/andyudina/technopark-db-api/blob/master/doc/post/create.md
 local postDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/post/details.md
@@ -61,11 +67,16 @@ end
 local INSERT = 'INSERT INTO %s (%s) VALUES (%s)'
 
 local function getUser(email)
-    local user = conn:execute(string.format('SELECT * FROM User WHERE email = %q;', email))[1]
+    local user = conn:execute('SELECT * FROM User WHERE email = ?', email)[1]
     if not user then return nil end
-
     user.followers = {}
+    for _, v in pairs(conn:execute('SELECT follower FROM Followers WHERE followee = ?', email)) do
+        table.insert(user.followers, v.follower)
+    end
     user.following = {}
+    for _, v in pairs(conn:execute('SELECT followee FROM Followers WHERE follower = ?', email)) do
+        table.insert(user.following, v.followee)
+    end
     user.subscriptions = {}
     return user
 end
@@ -352,12 +363,27 @@ updateProfile = function(json_params)
     return newResponse(0, created_user)
 end
 
+follow = function(param)
+    if not param.follower or not param.followee then
+        return errorResponse(3)
+    end
+    pcall(function()
+        conn:execute('INSERT INTO Followers (follower, followee) VALUES (?, ?)', param.follower, param.followee)
+    end)
+    local user = getUser(param.follower)
+    if not user then
+        return errorResponse(1)
+    end
+    return newResponse(0, user)
+end
+
 --------------
 -- Thread.
 --------------
 createThread = function(json_params)
 
     --    if true then return newResponse(0, json_params) end
+    -- todo
     --    if not keys_present(json_params, { 'forum', 'title', 'isClosed', 'user', 'date', 'message', 'slug' , 'isDeleted'}) then
     --        return errorResponse(3)
     --    end
@@ -465,6 +491,7 @@ server:route({ path = POST_PATH .. '/details', method = 'GET' }, postDetails)
 server:route({ path = USER_PATH .. '/create', method = 'POST' }, createUser)
 server:route({ path = USER_PATH .. '/details', method = 'GET' }, userDetails)
 server:route({ path = USER_PATH .. '/updateProfile', method = 'POST' }, updateProfile)
+server:route({ path = USER_PATH .. '/follow', method = 'POST' }, follow)
 -- Thread.
 server:route({ path = THREAD_PATH .. '/create', method = 'POST' }, createThread)
 server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)

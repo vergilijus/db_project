@@ -28,12 +28,13 @@ CREATE TABLE User (
 );
 
 CREATE TABLE Followers (
-  follower INT UNSIGNED NOT NULL,
-  followee INT UNSIGNED NOT NULL,
+  follower VARCHAR(63) NOT NULL,
+  followee VARCHAR(63) NOT NULL,
+  PRIMARY KEY (follower, followee),
   FOREIGN KEY (follower)
-  REFERENCES User (id),
+  REFERENCES User (email),
   FOREIGN KEY (followee)
-  REFERENCES User (id)
+  REFERENCES User (email)
 );
 
 CREATE TABLE Forum (
