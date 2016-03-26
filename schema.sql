@@ -77,7 +77,7 @@ CREATE TABLE Post (
   message       VARCHAR(5000)               NOT NULL,
   user          VARCHAR(63)                 NOT NULL,
   forum         VARCHAR(127)                NOT NULL,
-  parent        INT UNSIGNED DEFAULT FALSE, # todo foreign key,
+  parent        INT UNSIGNED DEFAULT NULL,
   isApproved    BOOL DEFAULT FALSE          NOT NULL,
   isHighlighted BOOL DEFAULT FALSE          NOT NULL,
   isEdited      BOOL DEFAULT FALSE          NOT NULL,
@@ -90,7 +90,9 @@ CREATE TABLE Post (
   FOREIGN KEY (user)
   REFERENCES User (email),
   FOREIGN KEY (forum)
-  REFERENCES Forum (short_name)
+  REFERENCES Forum (short_name),
+  FOREIGN KEY (parent)
+  REFERENCES Post (id)
   #   todo
 )
   ENGINE = INNODB;
