@@ -44,6 +44,7 @@ CREATE TABLE Forum (
   user       VARCHAR(63)                 NOT NULL,
   PRIMARY KEY (short_name),
   UNIQUE KEY (id),
+  UNIQUE key (name),
   FOREIGN KEY (user)
   REFERENCES User (email)
 );

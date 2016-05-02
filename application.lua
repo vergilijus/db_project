@@ -1,8 +1,8 @@
 #!                                                        /usr/bin/env tarantool
 
 box.cfg {
-    log_level = 10,
-    logger = '/home/gantz/tarantool_db_api.log'
+--    log_level = 10,
+--    logger = '/home/gantz/tarantool_db_api.log'
 }
 
 local BASE_PATH = '/db/api'
@@ -15,6 +15,9 @@ local log = require 'log'
 local json = require 'json'
 local mysql = require 'mysql'
 local conn = mysql.connect({ host = localhost, raise = true, user = 'tp_user', password = 'qwerty', db = 'db_api' })
+
+local PORT = 8083
+local HOST = '127.0.0.1'
 
 
 -- Common.
@@ -36,6 +39,7 @@ local unfollow -- https://github.com/andyudina/technopark-db-api/blob/master/doc
 -- Post.
 local createPost -- https://github.com/andyudina/technopark-db-api/blob/master/doc/post/create.md
 local postDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/post/details.md
+local removePost -- https://github.com/andyudina/technopark-db-api/blob/master/doc/post/remove.md
 -- Thread.
 local createThread -- https://github.com/andyudina/technopark-db-api/blob/master/doc/thread/create.md
 local threadDetails -- https://github.com/andyudina/technopark-db-api/blob/master/doc/thread/details.md
@@ -293,6 +297,17 @@ postDetails = function(json_params)
     return newResponse(0, post)
 end
 
+removePost = function(params)
+    if not params.post then
+        return errorResponse(3)
+    end
+
+    local result, nrows conn:execute('UPDATE Post SET isDeleted = TRUE WHERE id = ?', params.post)
+    if not result or nrows == 0 then
+        return errorResponse(1)
+    end
+    return newResponse(0, params)
+end
 --------------
 -- User.
 --------------
@@ -440,7 +455,7 @@ end
 --------------
 
 local httpd = require 'http.server'
-local server = httpd.new('127.0.0.1', 8081)
+local server = httpd.new(HOST, PORT)
 
 
 local function test(params)
@@ -487,6 +502,7 @@ server:route({ path = FORUM_PATH .. '/details', method = 'GET' }, forumDetails)
 -- Post.
 server:route({ path = POST_PATH .. '/create', method = 'POST' }, createPost)
 server:route({ path = POST_PATH .. '/details', method = 'GET' }, postDetails)
+server:route({ path = POST_PATH .. '/remove', method = 'POST' }, removePost)
 -- User.
 server:route({ path = USER_PATH .. '/create', method = 'POST' }, createUser)
 server:route({ path = USER_PATH .. '/details', method = 'GET' }, userDetails)
