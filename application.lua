@@ -1,4 +1,4 @@
-#!   /usr/bin/env tarantool
+#!     /usr/bin/env tarantool
 
 box.cfg {--    log_level = 10,
     --    logger = 'tarantool_db_api.log'
@@ -32,7 +32,7 @@ local updateProfile -- https://github.com/andyudina/technopark-db-api/blob/maste
 local follow -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/follow.md
 local listFollowers -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/listFollowers.md
 local listFollowing -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/listFollowing.md
-local listPosts -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/listPosts.md
+local userListPosts -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/listPosts.md
 local unfollow -- https://github.com/andyudina/technopark-db-api/blob/master/doc/user/unfollow.md
 
 -- Post.
@@ -81,6 +81,9 @@ local function getUser(email)
         table.insert(user.following, v.followee)
     end
     user.subscriptions = {}
+    for _, v in pairs(conn:execute('SELECT thread FROM Subscription WHERE user = ?', email)) do
+        table.insert(user.subscriptions, v.thread)
+    end
     return user
 end
 
@@ -239,10 +242,9 @@ end
 --------------
 -- Post.
 --------------
-local function getPost(self)
-    return self:render {
-        json = conn:execute('select * from Post;')
-    }
+local function getPost(id)
+    local post = conn:execute('SELECT * FROM Post WHERE id = ?', id)[1]
+    return post
 end
 
 createPost = function(params)
@@ -411,6 +413,7 @@ end
 
 listFollowers = function(param)
     if not param.user then return errorResponse(3) end
+    if not getUser(param.user) then return errorResponse(1) end
     local followers = conn:execute('SELECT follower FROM Followers WHERE followee = ?', param.user)
     local list_followers = {}
     for k, v in pairs(followers) do
@@ -421,12 +424,22 @@ end
 
 listFollowing = function(param)
     if not param.user then return errorResponse(3) end
+    if not getUser(param.user) then return errorResponse(1) end
     local followees = conn:execute('SELECT followee FROM Followers WHERE follower = ?', param.user)
     local list_followees = {}
     for k, v in pairs(followees) do
         table.insert(list_followees, getUser(v['followee']))
     end
     return newResponse(0, list_followees)
+end
+
+userListPosts = function(param)
+    if not param.user then return errorResponse(3) end
+    if not getUser(param.user) then return errorResponse(1) end
+    local list_posts = {}
+    local result = conn:execute('SELECT * FROM Post WHERE user = ?', param.user)
+    if result then list_posts = result end
+    return newResponse(0, list_posts)
 end
 
 --------------
@@ -548,6 +561,7 @@ server:route({ path = USER_PATH .. '/follow', method = 'POST' }, follow)
 server:route({ path = USER_PATH .. '/unfollow', method = 'POST' }, unfollow)
 server:route({ path = USER_PATH .. '/listFollowers', method = 'GET' }, listFollowers)
 server:route({ path = USER_PATH .. '/listFollowing', method = 'GET' }, listFollowing)
+server:route({ path = USER_PATH .. '/listPosts', method = 'GET' }, userListPosts)
 -- Thread.
 server:route({ path = THREAD_PATH .. '/create', method = 'POST' }, createThread)
 server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)
