@@ -1,8 +1,7 @@
-#!                                                        /usr/bin/env tarantool
+#!  /usr/bin/env tarantool
 
-box.cfg {
---    log_level = 10,
---    logger = '/home/gantz/tarantool_db_api.log'
+box.cfg {--    log_level = 10,
+    --    logger = 'tarantool_db_api.log'
 }
 
 local BASE_PATH = '/db/api'
@@ -16,8 +15,8 @@ local json = require 'json'
 local mysql = require 'mysql'
 local conn = mysql.connect({ host = localhost, raise = true, user = 'tp_user', password = 'qwerty', db = 'db_api' })
 
-local PORT = 8083
-local HOST = '127.0.0.1'
+local PORT = 8081
+local HOST = '*'
 
 
 -- Common.
@@ -83,6 +82,11 @@ local function getUser(email)
     end
     user.subscriptions = {}
     return user
+end
+
+local function getUsers(emails)
+    local users = conn:execute('')
+
 end
 
 local function add_related(s, obj)
@@ -392,6 +396,26 @@ follow = function(param)
     return newResponse(0, user)
 end
 
+listFollowers = function(param)
+    if not param.user then return errorResponse(3) end
+    local followers = conn:execute('SELECT follower FROM Followers WHERE followee = ?', param.user)
+    local list_followers = {}
+    for k, v in pairs(followers) do
+        table.insert(list_followers, getUser(v['follower']))
+    end
+    return newResponse(0, list_followers)
+end
+
+listFollowing = function(param)
+    if not param.user then return errorResponse(3) end
+    local followees = conn:execute('SELECT followee FROM Followers WHERE follower = ?', param.user)
+    local list_followees = {}
+    for k, v in pairs(followees) do
+        table.insert(list_followees, getUser(v['followee']))
+    end
+    return newResponse(0, list_followees)
+end
+
 --------------
 -- Thread.
 --------------
@@ -508,6 +532,8 @@ server:route({ path = USER_PATH .. '/create', method = 'POST' }, createUser)
 server:route({ path = USER_PATH .. '/details', method = 'GET' }, userDetails)
 server:route({ path = USER_PATH .. '/updateProfile', method = 'POST' }, updateProfile)
 server:route({ path = USER_PATH .. '/follow', method = 'POST' }, follow)
+server:route({ path = USER_PATH .. '/listFollowers', method = 'GET' }, listFollowers)
+server:route({ path = USER_PATH .. '/listFollowing', method = 'GET' }, listFollowing)
 -- Thread.
 server:route({ path = THREAD_PATH .. '/create', method = 'POST' }, createThread)
 server:route({ path = THREAD_PATH .. '/details', method = 'GET' }, threadDetails)
