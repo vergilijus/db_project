@@ -1,4 +1,4 @@
-#!  /usr/bin/env tarantool
+#!   /usr/bin/env tarantool
 
 box.cfg {--    log_level = 10,
     --    logger = 'tarantool_db_api.log'
@@ -86,7 +86,6 @@ end
 
 local function getUsers(emails)
     local users = conn:execute('')
-
 end
 
 local function add_related(s, obj)
@@ -396,6 +395,20 @@ follow = function(param)
     return newResponse(0, user)
 end
 
+unfollow = function(param)
+    if not param.follower or not param.followee then
+        return errorResponse(3)
+    end
+    pcall(function()
+        conn:execute('DELETE FROM Followers WHERE follower = ? and followee = ?', param.follower, param.followee)
+    end)
+    local user = getUser(param.follower)
+    if not user then
+        return errorResponse(1)
+    end
+    return newResponse(0, user)
+end
+
 listFollowers = function(param)
     if not param.user then return errorResponse(3) end
     local followers = conn:execute('SELECT follower FROM Followers WHERE followee = ?', param.user)
@@ -532,6 +545,7 @@ server:route({ path = USER_PATH .. '/create', method = 'POST' }, createUser)
 server:route({ path = USER_PATH .. '/details', method = 'GET' }, userDetails)
 server:route({ path = USER_PATH .. '/updateProfile', method = 'POST' }, updateProfile)
 server:route({ path = USER_PATH .. '/follow', method = 'POST' }, follow)
+server:route({ path = USER_PATH .. '/unfollow', method = 'POST' }, unfollow)
 server:route({ path = USER_PATH .. '/listFollowers', method = 'GET' }, listFollowers)
 server:route({ path = USER_PATH .. '/listFollowing', method = 'GET' }, listFollowing)
 -- Thread.
