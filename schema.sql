@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS Post;
 DROP TABLE IF EXISTS User;
 DROP TABLE IF EXISTS Thread;
 DROP TABLE IF EXISTS Followers;
+DROP TABLE IF EXISTS Subscription;
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE User (
@@ -44,7 +45,7 @@ CREATE TABLE Forum (
   user       VARCHAR(63)                 NOT NULL,
   PRIMARY KEY (short_name),
   UNIQUE KEY (id),
-  UNIQUE key (name),
+  UNIQUE KEY (name),
   FOREIGN KEY (user)
   REFERENCES User (email)
 );
@@ -98,6 +99,13 @@ CREATE TABLE Post (
   #   todo
 )
   ENGINE = INNODB;
+
+CREATE TABLE Subscription (
+  user   VARCHAR(63)  NOT NULL,
+  thread INT UNSIGNED NOT NULL,
+  FOREIGN KEY (user) REFERENCES User (email),
+  FOREIGN KEY (thread) REFERENCES Thread (id)
+)
 
 # todo: узнать что делать с дочерними постами удаленного поста
 
