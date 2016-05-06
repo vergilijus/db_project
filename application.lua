@@ -1,4 +1,4 @@
-#!     /usr/bin/env tarantool
+#!       /usr/bin/env tarantool
 
 box.cfg {--    log_level = 10,
     --    logger = 'tarantool_db_api.log'
@@ -436,8 +436,20 @@ end
 userListPosts = function(param)
     if not param.user then return errorResponse(3) end
     if not getUser(param.user) then return errorResponse(1) end
+    local query = 'SELECT * FROM Post WHERE user = ?'
+    if param.since then
+        query = string.format('%s AND date > %q', query, param.since)
+    end
+    local order = 'DESC'
+    if param.order then
+        order = param.order
+        query = string.format('%s ORDER BY date %s', query, order)
+    end
+    if param.limit then
+        query = string.format('%s LIMIT %s', query, param.limit)
+    end
     local list_posts = {}
-    local result = conn:execute('SELECT * FROM Post WHERE user = ?', param.user)
+    local result = conn:execute(query, param.user)
     if result then list_posts = result end
     return newResponse(0, list_posts)
 end
